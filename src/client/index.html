@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcritor</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Transcritor</h1>
+
+      <section id="upload-section">
+        <label id="drop-zone" for="file-input">
+          <span>Arraste um áudio aqui ou clique para escolher</span>
+          <input id="file-input" type="file" accept="audio/*" hidden />
+        </label>
+        <button id="transcribe-btn" disabled>Transcrever</button>
+        <p id="status"></p>
+      </section>
+
+      <section id="result-section" hidden>
+        <h2>Resultado</h2>
+        <textarea id="result-text" readonly></textarea>
+        <div class="actions">
+          <button id="copy-btn">Copiar</button>
+          <button id="download-btn">Baixar .txt</button>
+        </div>
+      </section>
+
+      <section id="history-section">
+        <h2>Histórico</h2>
+        <ul id="history-list"></ul>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
