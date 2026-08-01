@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_22", "ffmpeg", "python3"]
 
 [phases.build]
-cmds = ["npm ci", "npm run build"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "npm run start"
