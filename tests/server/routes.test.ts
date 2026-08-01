@@ -24,6 +24,15 @@ describe('routes', () => {
     expect(res.body.error).toBeTypeOf('string');
   });
 
+  it('POST /api/transcribe with the wrong field name returns 400 JSON, not an HTML stack trace', async () => {
+    const res = await request(app)
+      .post('/api/transcribe')
+      .attach('arquivo_errado', Buffer.from('conteudo'), 'audio.ogg');
+    expect(res.status).toBe(400);
+    expect(res.type).toBe('application/json');
+    expect(res.body.error).toBeTypeOf('string');
+  });
+
   it('GET /api/history returns an empty list initially', async () => {
     const res = await request(app).get('/api/history');
     expect(res.status).toBe(200);

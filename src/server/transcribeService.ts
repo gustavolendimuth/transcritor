@@ -2,8 +2,8 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { planProcessing, type AudioInfo } from './audio.js';
-import type { TranscribeChunkFn } from './openaiClient.js';
+import { planProcessing, UnsupportedAudioError, type AudioInfo } from './audio.js';
+import { TranscriptionApiError, type TranscribeChunkFn } from './openaiClient.js';
 import type { TranscriptionRepo, TranscriptionRecord } from './db.js';
 
 export interface TranscribeUploadDeps {
@@ -32,9 +32,20 @@ export async function transcribeUpload(
       chunkPaths = [uploadedFilePath];
     }
 
+    if (chunkPaths.length === 0) {
+      throw new UnsupportedAudioError('Não foi possível extrair áudio do arquivo enviado');
+    }
+
     const texts: string[] = [];
-    for (const chunkPath of chunkPaths) {
-      texts.push(await deps.transcribeChunk(chunkPath));
+    for (let i = 0; i < chunkPaths.length; i++) {
+      try {
+        texts.push(await deps.transcribeChunk(chunkPaths[i]));
+      } catch (error) {
+        throw new TranscriptionApiError(
+          `Falha ao transcrever o segmento ${i + 1} de ${chunkPaths.length}`,
+          error
+        );
+      }
     }
     const fullText = texts.join(' ').trim();
     return deps.repo.insert({

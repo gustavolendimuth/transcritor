@@ -50,7 +50,7 @@ export function createTranscriptionRepo(dbPath: string): TranscriptionRepo {
       filename TEXT NOT NULL,
       text TEXT NOT NULL,
       duration_seconds REAL NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     )
   `);
 

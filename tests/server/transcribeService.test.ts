@@ -53,7 +53,7 @@ describe('transcribeUpload', () => {
       transcribeChunk,
     });
     await expect(transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg')).rejects.toThrow(
-      'falha na API'
+      'Falha ao transcrever o segmento 2 de 2'
     );
     expect(repo.list()).toHaveLength(0);
   });
@@ -71,12 +71,28 @@ describe('transcribeUpload', () => {
       compressAndSplit,
     });
     const rmSpy = vi.spyOn(fs, 'rm');
+    try {
+      await expect(transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg')).rejects.toThrow(
+        'falha no ffmpeg'
+      );
+      expect(repo.list()).toHaveLength(0);
+      expect(capturedWorkDir).toBeDefined();
+      expect(rmSpy).toHaveBeenCalledWith(capturedWorkDir, { recursive: true, force: true });
+    } finally {
+      rmSpy.mockRestore();
+    }
+  });
+
+  it('rejects with UnsupportedAudioError when compressAndSplit produces no chunks', async () => {
+    const repo = createTranscriptionRepo(':memory:');
+    const deps = makeDeps({
+      repo,
+      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
+      compressAndSplit: vi.fn(async () => []),
+    });
     await expect(transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg')).rejects.toThrow(
-      'falha no ffmpeg'
+      'Não foi possível extrair áudio do arquivo enviado'
     );
     expect(repo.list()).toHaveLength(0);
-    expect(capturedWorkDir).toBeDefined();
-    expect(rmSpy).toHaveBeenCalledWith(capturedWorkDir, { recursive: true, force: true });
-    rmSpy.mockRestore();
   });
 });

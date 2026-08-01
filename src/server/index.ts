@@ -31,7 +31,11 @@ app.use('/api', createRouter({ repo, transcribeChunk: openaiClient.transcribeChu
 
 const clientDist = path.join(__dirname, '../../dist/client');
 app.use(express.static(clientDist));
-app.get('*', (_req, res) => {
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Rota não encontrada' });
+    return;
+  }
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 

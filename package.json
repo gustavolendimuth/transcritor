@@ -16,7 +16,8 @@
     "better-sqlite3": "^13.0.2",
     "express": "^4.19.2",
     "multer": "^2.0.0",
-    "openai": "^4.70.0"
+    "openai": "^4.70.0",
+    "tsx": "^4.19.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
@@ -26,13 +27,12 @@
     "@types/supertest": "^6.0.2",
     "concurrently": "^8.2.2",
     "supertest": "^7.0.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
     "vitest": "^2.0.5"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.9.0"
   },
   "allowScripts": {
     "better-sqlite3@13.0.2": true

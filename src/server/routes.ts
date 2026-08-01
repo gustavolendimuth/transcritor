@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import os from 'node:os';
 import path from 'node:path';
@@ -45,7 +46,8 @@ export function createRouter(deps: RouterDeps): Router {
       res.status(200).json(record);
     } catch (error) {
       if (error instanceof UnsupportedAudioError) {
-        res.status(400).json({ error: error.message });
+        console.error(error.message, error.cause);
+        res.status(400).json({ error: 'Formato de áudio não suportado' });
       } else if (error instanceof TranscriptionApiError) {
         res.status(502).json({ error: error.message });
       } else {
@@ -74,6 +76,17 @@ export function createRouter(deps: RouterDeps): Router {
     const id = Number(req.params.id);
     const removed = deps.repo.remove(id);
     res.status(removed ? 204 : 404).end();
+  });
+
+  router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof multer.MulterError) {
+      const message =
+        err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 100MB' : 'Upload inválido';
+      res.status(400).json({ error: message });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Erro interno' });
   });
 
   return router;

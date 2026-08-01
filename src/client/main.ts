@@ -89,25 +89,36 @@ downloadBtn.addEventListener('click', () => {
 });
 
 async function loadHistory() {
-  const response = await fetch('/api/history');
-  const records: TranscriptionRecord[] = await response.json();
-  historyList.innerHTML = '';
-  for (const record of records) {
-    const li = document.createElement('li');
-    const button = document.createElement('button');
-    button.textContent = `${record.filename} — ${new Date(record.createdAt).toLocaleString('pt-BR')}`;
-    button.addEventListener('click', () => showResult(record));
+  try {
+    const response = await fetch('/api/history');
+    if (!response.ok) {
+      throw new Error('Não foi possível carregar o histórico');
+    }
+    const records: TranscriptionRecord[] = await response.json();
+    historyList.innerHTML = '';
+    for (const record of records) {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.textContent = `${record.filename} — ${new Date(record.createdAt).toLocaleString('pt-BR')}`;
+      button.addEventListener('click', () => showResult(record));
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = 'Excluir';
-    deleteBtn.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      await fetch(`/api/history/${record.id}`, { method: 'DELETE' });
-      await loadHistory();
-    });
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Excluir';
+      deleteBtn.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const deleteResponse = await fetch(`/api/history/${record.id}`, { method: 'DELETE' });
+        if (!deleteResponse.ok) {
+          setStatus('Não foi possível excluir a transcrição.');
+          return;
+        }
+        await loadHistory();
+      });
 
-    li.append(button, deleteBtn);
-    historyList.append(li);
+      li.append(button, deleteBtn);
+      historyList.append(li);
+    }
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : 'Erro ao carregar histórico');
   }
 }
 
