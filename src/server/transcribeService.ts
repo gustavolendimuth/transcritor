@@ -24,14 +24,14 @@ export async function transcribeUpload(
   let chunkPaths: string[];
   let workDir: string | undefined;
 
-  if (plan.needsProcessing) {
-    workDir = path.join(os.tmpdir(), `transcritor-${randomUUID()}`);
-    chunkPaths = await deps.compressAndSplit(uploadedFilePath, workDir);
-  } else {
-    chunkPaths = [uploadedFilePath];
-  }
-
   try {
+    if (plan.needsProcessing) {
+      workDir = path.join(os.tmpdir(), `transcritor-${randomUUID()}`);
+      chunkPaths = await deps.compressAndSplit(uploadedFilePath, workDir);
+    } else {
+      chunkPaths = [uploadedFilePath];
+    }
+
     const texts: string[] = [];
     for (const chunkPath of chunkPaths) {
       texts.push(await deps.transcribeChunk(chunkPath));

@@ -56,4 +56,18 @@ describe('transcribeUpload', () => {
     );
     expect(repo.list()).toHaveLength(0);
   });
+
+  it('does not save anything if compressAndSplit fails', async () => {
+    const repo = createTranscriptionRepo(':memory:');
+    const compressAndSplit = vi.fn().mockRejectedValue(new Error('falha no ffmpeg'));
+    const deps = makeDeps({
+      repo,
+      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
+      compressAndSplit,
+    });
+    await expect(transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg')).rejects.toThrow(
+      'falha no ffmpeg'
+    );
+    expect(repo.list()).toHaveLength(0);
+  });
 });
