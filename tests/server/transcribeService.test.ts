@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import fs from 'node:fs/promises';
 import { transcribeUpload, type TranscribeUploadDeps } from '../../src/server/transcribeService.js';
 import { createTranscriptionRepo } from '../../src/server/db.js';
 
@@ -59,15 +60,23 @@ describe('transcribeUpload', () => {
 
   it('does not save anything if compressAndSplit fails', async () => {
     const repo = createTranscriptionRepo(':memory:');
-    const compressAndSplit = vi.fn().mockRejectedValue(new Error('falha no ffmpeg'));
+    let capturedWorkDir: string | undefined;
+    const compressAndSplit = vi.fn(async (_input: string, outputDir: string) => {
+      capturedWorkDir = outputDir;
+      throw new Error('falha no ffmpeg');
+    });
     const deps = makeDeps({
       repo,
       getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
       compressAndSplit,
     });
+    const rmSpy = vi.spyOn(fs, 'rm');
     await expect(transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg')).rejects.toThrow(
       'falha no ffmpeg'
     );
     expect(repo.list()).toHaveLength(0);
+    expect(capturedWorkDir).toBeDefined();
+    expect(rmSpy).toHaveBeenCalledWith(capturedWorkDir, { recursive: true, force: true });
+    rmSpy.mockRestore();
   });
 });
