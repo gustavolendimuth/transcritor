@@ -50,16 +50,16 @@ export function createTranscriptionRepo(dbPath: string): TranscriptionRepo {
       filename TEXT NOT NULL,
       text TEXT NOT NULL,
       duration_seconds REAL NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      created_at TEXT NOT NULL
     )
   `);
 
   return {
     insert({ filename, text, durationSeconds }) {
       const stmt = db.prepare(
-        'INSERT INTO transcriptions (filename, text, duration_seconds) VALUES (?, ?, ?)'
+        'INSERT INTO transcriptions (filename, text, duration_seconds, created_at) VALUES (?, ?, ?, ?)'
       );
-      const info = stmt.run(filename, text, durationSeconds);
+      const info = stmt.run(filename, text, durationSeconds, new Date().toISOString());
       const row = db
         .prepare('SELECT * FROM transcriptions WHERE id = ?')
         .get(info.lastInsertRowid) as TranscriptionRow;
