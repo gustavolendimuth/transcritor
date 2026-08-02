@@ -4,35 +4,96 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transcritor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main>
-      <h1>Transcritor</h1>
-
-      <section id="upload-section">
-        <label id="drop-zone" for="file-input">
-          <span>Arraste um áudio aqui ou clique para escolher</span>
-          <input id="file-input" type="file" accept="audio/*" hidden />
-        </label>
-        <button id="transcribe-btn" disabled>Transcrever</button>
-        <p id="status"></p>
-      </section>
-
-      <section id="result-section" hidden>
-        <h2>Resultado</h2>
-        <textarea id="result-text" readonly></textarea>
-        <div class="actions">
-          <button id="copy-btn">Copiar</button>
-          <button id="download-btn">Baixar .txt</button>
+    <div id="login-backdrop" class="backdrop" hidden>
+      <form id="login-form" class="modal" novalidate>
+        <div class="waveform" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
         </div>
-      </section>
+        <h1 class="modal-title">Transcritor</h1>
+        <p class="modal-subtitle">Entre para continuar</p>
+        <label class="field">
+          <span>Usuário</span>
+          <input id="login-user" type="text" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Senha</span>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+    </div>
 
-      <section id="history-section">
-        <h2>Histórico</h2>
-        <ul id="history-list"></ul>
-      </section>
-    </main>
+    <div id="app" hidden>
+      <header class="app-header">
+        <div class="brand">
+          <div class="waveform" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <h1>Transcritor</h1>
+        </div>
+        <button id="logout-btn" type="button" class="btn btn-ghost">Sair</button>
+      </header>
+
+      <main>
+        <section id="upload-section" class="card">
+          <label id="drop-zone" for="file-input" class="dropzone">
+            <svg
+              class="dropzone-icon"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>Arraste um áudio aqui ou clique para escolher</span>
+            <input id="file-input" type="file" accept="audio/*" hidden />
+          </label>
+          <button id="transcribe-btn" type="button" class="btn btn-primary" disabled>
+            <span class="btn-label">Transcrever</span>
+            <span class="waveform waveform-btn" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </span>
+          </button>
+          <p id="status" class="status"></p>
+        </section>
+
+        <section id="result-section" class="card" hidden>
+          <h2>Resultado</h2>
+          <textarea id="result-text" class="result-text" readonly></textarea>
+          <div class="actions">
+            <button id="copy-btn" type="button" class="btn btn-secondary">Copiar</button>
+            <button id="download-btn" type="button" class="btn btn-secondary">Baixar .txt</button>
+          </div>
+        </section>
+
+        <section id="history-section" class="card">
+          <h2>Histórico</h2>
+          <p id="history-empty" class="empty-state" hidden>
+            Nenhuma transcrição ainda — envie um áudio acima para começar.
+          </p>
+          <ul id="history-list"></ul>
+        </section>
+      </main>
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
