@@ -375,6 +375,10 @@ input {
   z-index: 10;
 }
 
+.backdrop[hidden] {
+  display: none;
+}
+
 .modal {
   width: 100%;
   max-width: 360px;
