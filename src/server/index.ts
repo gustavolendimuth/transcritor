@@ -26,8 +26,11 @@ const repo = createTranscriptionRepo(DB_PATH);
 const openaiClient = createOpenAIClient(OPENAI_API_KEY);
 
 const app = express();
-app.use(basicAuthMiddleware(AUTH_USER, AUTH_PASSWORD));
-app.use('/api', createRouter({ repo, transcribeChunk: openaiClient.transcribeChunk }));
+app.use(
+  '/api',
+  basicAuthMiddleware(AUTH_USER, AUTH_PASSWORD),
+  createRouter({ repo, transcribeChunk: openaiClient.transcribeChunk })
+);
 
 const clientDist = path.join(__dirname, '../../dist/client');
 app.use(express.static(clientDist));
