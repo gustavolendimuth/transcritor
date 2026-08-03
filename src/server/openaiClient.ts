@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import OpenAI from 'openai';
+import type { Language } from '../shared/languages.js';
 
 export class TranscriptionApiError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -20,7 +21,7 @@ export interface TranscribeChunkResult {
 
 export interface TranscribeChunkOptions {
   withTimestamps: boolean;
-  language: string;
+  language: Language;
 }
 
 export type TranscribeChunkFn = (

@@ -6,6 +6,7 @@ import { planProcessing, UnsupportedAudioError, type AudioInfo } from './audio.j
 import {
   TranscriptionApiError,
   type TranscribeChunkFn,
+  type TranscribeChunkOptions,
   type TranscribeChunkResult,
 } from './openaiClient.js';
 import type { TranscriptionRepo, TranscriptionRecord } from './db.js';
@@ -17,10 +18,7 @@ export interface TranscribeUploadDeps {
   compressAndSplit: (inputPath: string, outputDir: string) => Promise<string[]>;
 }
 
-export interface TranscribeUploadOptions {
-  withTimestamps: boolean;
-  language: string;
-}
+export type TranscribeUploadOptions = TranscribeChunkOptions;
 
 export async function transcribeUpload(
   deps: TranscribeUploadDeps,

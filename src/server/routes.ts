@@ -8,14 +8,11 @@ import type { TranscriptionRepo } from './db.js';
 import { UnsupportedAudioError, getAudioInfo, compressAndSplit } from './audio.js';
 import { TranscriptionApiError, type TranscribeChunkFn } from './openaiClient.js';
 import { transcribeUpload, type TranscribeUploadOptions } from './transcribeService.js';
-
-const ALLOWED_LANGUAGES = new Set(['pt', 'en', 'es']);
+import { isLanguage, type Language } from '../shared/languages.js';
 
 export function parseTranscribeOptions(body: Record<string, unknown>): TranscribeUploadOptions {
-  const language =
-    typeof body.language === 'string' && ALLOWED_LANGUAGES.has(body.language)
-      ? body.language
-      : 'pt';
+  const language: Language =
+    typeof body.language === 'string' && isLanguage(body.language) ? body.language : 'pt';
   return {
     withTimestamps: body.withTimestamps === 'true',
     language,

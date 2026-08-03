@@ -1,4 +1,5 @@
 import { attemptLogin, authFetch, clearCredentials, getCredentials } from './auth.js';
+import { LANGUAGES, LANGUAGE_LABELS } from '../shared/languages.js';
 
 interface TranscriptionRecord {
   id: number;
@@ -29,6 +30,14 @@ const historyList = document.getElementById('history-list') as HTMLUListElement;
 const historyEmpty = document.getElementById('history-empty') as HTMLParagraphElement;
 const timestampsCheckbox = document.getElementById('timestamps-checkbox') as HTMLInputElement;
 const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
+
+for (const lang of LANGUAGES) {
+  const option = document.createElement('option');
+  option.value = lang;
+  option.textContent = LANGUAGE_LABELS[lang];
+  if (lang === 'pt') option.selected = true;
+  languageSelect.append(option);
+}
 
 let selectedFile: File | null = null;
 let currentFilename = 'transcricao.txt';
