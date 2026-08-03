@@ -4,6 +4,15 @@ import request from 'supertest';
 import { createRouter, parseTranscribeOptions } from '../../src/server/routes.js';
 import { createTranscriptionRepo, type TranscriptionRepo } from '../../src/server/db.js';
 
+vi.mock('../../src/server/audio.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/server/audio.js')>();
+  return {
+    ...actual,
+    getAudioInfo: vi.fn(async () => ({ durationSeconds: 5, sizeBytes: 1024 })),
+    compressAndSplit: vi.fn(async () => []),
+  };
+});
+
 describe('routes', () => {
   let repo: TranscriptionRepo;
   let app: express.Express;
@@ -70,6 +79,40 @@ describe('routes', () => {
   it('DELETE /api/history/:id returns 404 for a missing id', async () => {
     const res = await request(app).delete('/api/history/999');
     expect(res.status).toBe(404);
+  });
+
+  it('POST /api/transcribe forwards the parsed withTimestamps/language to transcribeChunk', async () => {
+    const transcribeChunk = vi.fn(async () => ({ text: 'ok' }));
+    app = express();
+    app.use('/api', createRouter({ repo, transcribeChunk }));
+
+    const res = await request(app)
+      .post('/api/transcribe')
+      .field('withTimestamps', 'true')
+      .field('language', 'es')
+      .attach('audio', Buffer.from('conteudo'), 'audio.ogg');
+
+    expect(res.status).toBe(200);
+    expect(transcribeChunk).toHaveBeenCalledWith(expect.any(String), {
+      withTimestamps: true,
+      language: 'es',
+    });
+  });
+
+  it('POST /api/transcribe defaults to withTimestamps=false/language=pt when the fields are omitted', async () => {
+    const transcribeChunk = vi.fn(async () => ({ text: 'ok' }));
+    app = express();
+    app.use('/api', createRouter({ repo, transcribeChunk }));
+
+    const res = await request(app)
+      .post('/api/transcribe')
+      .attach('audio', Buffer.from('conteudo'), 'audio.ogg');
+
+    expect(res.status).toBe(200);
+    expect(transcribeChunk).toHaveBeenCalledWith(expect.any(String), {
+      withTimestamps: false,
+      language: 'pt',
+    });
   });
 });
 
