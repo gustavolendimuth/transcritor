@@ -67,6 +67,27 @@
             <span>Arraste um áudio aqui ou clique para escolher</span>
             <input id="file-input" type="file" accept="audio/*" hidden />
           </label>
+          <div class="upload-options">
+            <label class="checkbox-field">
+              <input id="timestamps-checkbox" type="checkbox" checked />
+              <span>
+                Adicionar tempo às falas
+                <small
+                  >Adiciona o tempo de cada trecho falado ao texto. Isso usa outro modelo de
+                  transcrição e pode reduzir um pouco a qualidade — se notar isso, tente
+                  novamente sem marcar esta opção.</small
+                >
+              </span>
+            </label>
+            <label class="field field-inline">
+              <span>Idioma</span>
+              <select id="language-select">
+                <option value="pt" selected>Português</option>
+                <option value="en">Inglês</option>
+                <option value="es">Espanhol</option>
+              </select>
+            </label>
+          </div>
           <button id="transcribe-btn" type="button" class="btn btn-primary" disabled>
             <span class="btn-label">Transcrever</span>
             <span class="waveform waveform-btn" aria-hidden="true">

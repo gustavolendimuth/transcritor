@@ -27,6 +27,8 @@ const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const historyList = document.getElementById('history-list') as HTMLUListElement;
 const historyEmpty = document.getElementById('history-empty') as HTMLParagraphElement;
+const timestampsCheckbox = document.getElementById('timestamps-checkbox') as HTMLInputElement;
+const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
 
 let selectedFile: File | null = null;
 let currentFilename = 'transcricao.txt';
@@ -107,6 +109,8 @@ transcribeBtn.addEventListener('click', async () => {
 
   const formData = new FormData();
   formData.append('audio', selectedFile);
+  formData.append('withTimestamps', String(timestampsCheckbox.checked));
+  formData.append('language', languageSelect.value);
 
   try {
     const response = await authFetch('/api/transcribe', { method: 'POST', body: formData });
