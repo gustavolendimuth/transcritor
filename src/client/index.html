@@ -69,7 +69,7 @@
           </label>
           <div class="upload-options">
             <label class="checkbox-field">
-              <input id="timestamps-checkbox" type="checkbox" checked />
+              <input id="timestamps-checkbox" type="checkbox" />
               <span>
                 Adicionar tempo às falas
                 <small
@@ -98,7 +98,7 @@
           <textarea id="result-text" class="result-text" readonly></textarea>
           <div class="actions">
             <button id="copy-btn" type="button" class="btn btn-secondary">Copiar</button>
-            <button id="download-btn" type="button" class="btn btn-secondary">Baixar .txt</button>
+            <button id="download-btn" type="button" class="btn btn-secondary">Baixar</button>
           </div>
         </section>
 
@@ -110,6 +110,15 @@
           <ul id="history-list"></ul>
         </section>
       </main>
+    </div>
+
+    <div id="loading-backdrop" class="backdrop" hidden>
+      <div class="modal loading-modal" role="status" aria-live="polite">
+        <span class="spinner spinner-lg" aria-hidden="true"></span>
+        <p class="loading-message">
+          Transcrevendo... isso pode levar alguns minutos para áudios longos.
+        </p>
+      </div>
     </div>
     <script type="module" src="./main.ts"></script>
   </body>

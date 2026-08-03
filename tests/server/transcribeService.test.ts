@@ -25,6 +25,7 @@ describe('transcribeUpload', () => {
     expect(deps.compressAndSplit).not.toHaveBeenCalled();
     expect(record.text).toBe('texto');
     expect(record.filename).toBe('audio.ogg');
+    expect(record.withTimestamps).toBe(false);
   });
 
   it('concatenates chunk texts in order for long files', async () => {
@@ -129,6 +130,7 @@ describe('transcribeUpload', () => {
     );
     expect(transcribeChunk).toHaveBeenNthCalledWith(1, '/tmp/chunk_00.ogg', WITH_TIMESTAMPS);
     expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg', WITH_TIMESTAMPS);
+    expect(record.withTimestamps).toBe(true);
   });
 
   it('falls back to chunk text for chunks with no segments while other chunks still use real segments', async () => {

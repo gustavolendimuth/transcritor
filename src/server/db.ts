@@ -7,11 +7,17 @@ export interface TranscriptionRecord {
   filename: string;
   text: string;
   durationSeconds: number;
+  withTimestamps: boolean;
   createdAt: string;
 }
 
 export interface TranscriptionRepo {
-  insert(record: { filename: string; text: string; durationSeconds: number }): TranscriptionRecord;
+  insert(record: {
+    filename: string;
+    text: string;
+    durationSeconds: number;
+    withTimestamps: boolean;
+  }): TranscriptionRecord;
   list(): TranscriptionRecord[];
   get(id: number): TranscriptionRecord | undefined;
   remove(id: number): boolean;
@@ -23,6 +29,7 @@ interface TranscriptionRow {
   filename: string;
   text: string;
   duration_seconds: number;
+  with_timestamps: number;
   created_at: string;
 }
 
@@ -32,6 +39,7 @@ function rowToRecord(row: TranscriptionRow): TranscriptionRecord {
     filename: row.filename,
     text: row.text,
     durationSeconds: row.duration_seconds,
+    withTimestamps: Boolean(row.with_timestamps),
     createdAt: row.created_at,
   };
 }
@@ -50,16 +58,27 @@ export function createTranscriptionRepo(dbPath: string): TranscriptionRepo {
       filename TEXT NOT NULL,
       text TEXT NOT NULL,
       duration_seconds REAL NOT NULL,
+      with_timestamps INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     )
   `);
+  const columns = db.prepare('PRAGMA table_info(transcriptions)').all() as { name: string }[];
+  if (!columns.some((column) => column.name === 'with_timestamps')) {
+    db.exec('ALTER TABLE transcriptions ADD COLUMN with_timestamps INTEGER NOT NULL DEFAULT 0');
+  }
 
   return {
-    insert({ filename, text, durationSeconds }) {
+    insert({ filename, text, durationSeconds, withTimestamps }) {
       const stmt = db.prepare(
-        'INSERT INTO transcriptions (filename, text, duration_seconds, created_at) VALUES (?, ?, ?, ?)'
+        'INSERT INTO transcriptions (filename, text, duration_seconds, with_timestamps, created_at) VALUES (?, ?, ?, ?, ?)'
       );
-      const info = stmt.run(filename, text, durationSeconds, new Date().toISOString());
+      const info = stmt.run(
+        filename,
+        text,
+        durationSeconds,
+        withTimestamps ? 1 : 0,
+        new Date().toISOString()
+      );
       const row = db
         .prepare('SELECT * FROM transcriptions WHERE id = ?')
         .get(info.lastInsertRowid) as TranscriptionRow;

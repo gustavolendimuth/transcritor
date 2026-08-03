@@ -12,7 +12,7 @@ Basic Auth.
     npm install
     npm run dev
 
-Frontend em http://localhost:5173 (proxy para a API em :3001).
+Frontend em http://localhost:5173 (proxy para a API em :3011).
 
 ## Build e execução em produção
 
@@ -24,7 +24,7 @@ Frontend em http://localhost:5173 (proxy para a API em :3001).
 - `OPENAI_API_KEY` — chave da API da OpenAI.
 - `AUTH_USER` / `AUTH_PASSWORD` — credenciais do HTTP Basic Auth.
 - `DB_PATH` — caminho do arquivo SQLite (padrão: `./data/transcricoes.db`).
-- `PORT` — porta HTTP (padrão: 3001; Railway define automaticamente).
+- `PORT` — porta HTTP (padrão: 3011; Railway define automaticamente).
 
 ## Deploy no Railway
 

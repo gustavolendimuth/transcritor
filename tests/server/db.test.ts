@@ -13,17 +13,33 @@ describe('createTranscriptionRepo', () => {
   });
 
   it('inserts a transcription and returns it with id and createdAt', () => {
-    const record = repo.insert({ filename: 'audio.ogg', text: 'ola mundo', durationSeconds: 12.5 });
+    const record = repo.insert({
+      filename: 'audio.ogg',
+      text: 'ola mundo',
+      durationSeconds: 12.5,
+      withTimestamps: false,
+    });
     expect(record.id).toBeTypeOf('number');
     expect(record.filename).toBe('audio.ogg');
     expect(record.text).toBe('ola mundo');
     expect(record.durationSeconds).toBe(12.5);
+    expect(record.withTimestamps).toBe(false);
     expect(record.createdAt).toBeTypeOf('string');
   });
 
+  it('persists withTimestamps=true', () => {
+    const record = repo.insert({
+      filename: 'audio.ogg',
+      text: 'ola mundo',
+      durationSeconds: 12.5,
+      withTimestamps: true,
+    });
+    expect(record.withTimestamps).toBe(true);
+  });
+
   it('lists transcriptions most recent first', () => {
-    repo.insert({ filename: 'first.ogg', text: 'primeiro', durationSeconds: 1 });
-    repo.insert({ filename: 'second.ogg', text: 'segundo', durationSeconds: 2 });
+    repo.insert({ filename: 'first.ogg', text: 'primeiro', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'second.ogg', text: 'segundo', durationSeconds: 2, withTimestamps: false });
     const list = repo.list();
     expect(list).toHaveLength(2);
     expect(list[0].filename).toBe('second.ogg');
@@ -31,7 +47,12 @@ describe('createTranscriptionRepo', () => {
   });
 
   it('gets a transcription by id', () => {
-    const inserted = repo.insert({ filename: 'audio.ogg', text: 'texto', durationSeconds: 3 });
+    const inserted = repo.insert({
+      filename: 'audio.ogg',
+      text: 'texto',
+      durationSeconds: 3,
+      withTimestamps: false,
+    });
     const found = repo.get(inserted.id);
     expect(found).toEqual(inserted);
   });
@@ -41,7 +62,12 @@ describe('createTranscriptionRepo', () => {
   });
 
   it('removes a transcription by id', () => {
-    const inserted = repo.insert({ filename: 'audio.ogg', text: 'texto', durationSeconds: 3 });
+    const inserted = repo.insert({
+      filename: 'audio.ogg',
+      text: 'texto',
+      durationSeconds: 3,
+      withTimestamps: false,
+    });
     expect(repo.remove(inserted.id)).toBe(true);
     expect(repo.get(inserted.id)).toBeUndefined();
   });

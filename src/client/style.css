@@ -262,6 +262,38 @@ input {
   margin: var(--space-2) 0 0;
 }
 
+.spinner {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ctp-surface2);
+  border-top-color: var(--ctp-mauve);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-lg {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.loading-modal {
+  gap: var(--space-3);
+}
+
+.loading-message {
+  margin: 0;
+  color: var(--ctp-subtext1);
+  font-size: 0.9375rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .result-text {
   width: 100%;
   min-height: 220px;
@@ -325,8 +357,23 @@ input {
 }
 
 .history-filename {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   color: var(--ctp-text);
   font-size: 0.9375rem;
+}
+
+.history-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  background: rgba(203, 166, 247, 0.16);
+  color: var(--ctp-mauve);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .history-meta {
@@ -346,16 +393,9 @@ input {
   border: none;
   color: var(--ctp-overlay0);
   cursor: pointer;
-  opacity: 0;
   transition:
-    opacity 0.15s ease,
     background-color 0.15s ease,
     color 0.15s ease;
-}
-
-.history-item:hover .history-delete,
-.history-delete:focus-visible {
-  opacity: 1;
 }
 
 .history-delete:hover {
@@ -459,6 +499,10 @@ input {
   .waveform span {
     animation: none;
     transform: scaleY(0.7);
+  }
+
+  .spinner {
+    animation: none;
   }
 }
 

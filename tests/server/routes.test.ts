@@ -49,8 +49,8 @@ describe('routes', () => {
   });
 
   it('GET /api/history returns saved transcriptions most recent first', async () => {
-    repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1 });
-    repo.insert({ filename: 'b.ogg', text: 'b', durationSeconds: 2 });
+    repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'b.ogg', text: 'b', durationSeconds: 2, withTimestamps: false });
     const res = await request(app).get('/api/history');
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(2);
@@ -63,14 +63,14 @@ describe('routes', () => {
   });
 
   it('GET /api/history/:id returns the record when it exists', async () => {
-    const inserted = repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1 });
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1, withTimestamps: false });
     const res = await request(app).get(`/api/history/${inserted.id}`);
     expect(res.status).toBe(200);
     expect(res.body.filename).toBe('a.ogg');
   });
 
   it('DELETE /api/history/:id removes an existing record', async () => {
-    const inserted = repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1 });
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'a', durationSeconds: 1, withTimestamps: false });
     const res = await request(app).delete(`/api/history/${inserted.id}`);
     expect(res.status).toBe(204);
     expect(repo.get(inserted.id)).toBeUndefined();

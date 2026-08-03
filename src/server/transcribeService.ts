@@ -84,6 +84,7 @@ export async function transcribeUpload(
       filename: originalFilename,
       text: fullText,
       durationSeconds: info.durationSeconds,
+      withTimestamps: options.withTimestamps,
     });
   } finally {
     if (workDir) {

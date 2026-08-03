@@ -6,6 +6,7 @@ interface TranscriptionRecord {
   filename: string;
   text: string;
   durationSeconds: number;
+  withTimestamps: boolean;
   createdAt: string;
 }
 
@@ -22,6 +23,7 @@ const dropZone = document.getElementById('drop-zone') as HTMLLabelElement;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const transcribeBtn = document.getElementById('transcribe-btn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLParagraphElement;
+const loadingBackdrop = document.getElementById('loading-backdrop') as HTMLDivElement;
 const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
 const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
@@ -114,7 +116,7 @@ transcribeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
   transcribeBtn.disabled = true;
   transcribeBtn.classList.add('is-loading');
-  setStatus('Transcrevendo... isso pode levar alguns minutos para áudios longos.');
+  loadingBackdrop.hidden = false;
 
   const formData = new FormData();
   formData.append('audio', selectedFile);
@@ -134,6 +136,7 @@ transcribeBtn.addEventListener('click', async () => {
   } finally {
     transcribeBtn.disabled = false;
     transcribeBtn.classList.remove('is-loading');
+    loadingBackdrop.hidden = true;
   }
 });
 
@@ -188,7 +191,10 @@ async function loadHistory() {
       info.type = 'button';
       info.className = 'history-info';
       const duration = formatDuration(record.durationSeconds);
-      info.innerHTML = `<span class="history-filename">${escapeHtml(record.filename)}</span><span class="history-meta">${duration} · ${new Date(record.createdAt).toLocaleString('pt-BR')}</span>`;
+      const badge = record.withTimestamps
+        ? '<span class="history-badge">Com tempo</span>'
+        : '';
+      info.innerHTML = `<span class="history-filename">${escapeHtml(record.filename)}${badge}</span><span class="history-meta">${duration} · ${new Date(record.createdAt).toLocaleString('pt-BR')}</span>`;
       info.addEventListener('click', () => showResult(record));
 
       const deleteBtn = document.createElement('button');

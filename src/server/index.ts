@@ -16,7 +16,7 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? 3011);
 const OPENAI_API_KEY = requireEnv('OPENAI_API_KEY');
 const AUTH_USER = requireEnv('AUTH_USER');
 const AUTH_PASSWORD = requireEnv('AUTH_PASSWORD');
