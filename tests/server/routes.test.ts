@@ -11,7 +11,7 @@ describe('routes', () => {
   beforeEach(() => {
     repo = createTranscriptionRepo(':memory:');
     app = express();
-    app.use('/api', createRouter({ repo, transcribeChunk: vi.fn(async () => 'texto') }));
+    app.use('/api', createRouter({ repo, transcribeChunk: vi.fn(async () => ({ text: 'texto' })) }));
   });
 
   afterEach(() => {

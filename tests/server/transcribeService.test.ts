@@ -6,7 +6,7 @@ import { createTranscriptionRepo } from '../../src/server/db.js';
 function makeDeps(overrides: Partial<TranscribeUploadDeps> = {}): TranscribeUploadDeps {
   return {
     repo: createTranscriptionRepo(':memory:'),
-    transcribeChunk: vi.fn(async () => 'texto'),
+    transcribeChunk: vi.fn(async () => ({ text: 'texto' })),
     getAudioInfo: vi.fn(async () => ({ durationSeconds: 60, sizeBytes: 1024 })),
     compressAndSplit: vi.fn(async () => []),
     ...overrides,
@@ -18,7 +18,7 @@ describe('transcribeUpload', () => {
     const deps = makeDeps();
     const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg');
     expect(deps.transcribeChunk).toHaveBeenCalledTimes(1);
-    expect(deps.transcribeChunk).toHaveBeenCalledWith('/tmp/audio.ogg');
+    expect(deps.transcribeChunk).toHaveBeenCalledWith('/tmp/audio.ogg', { withTimestamps: false, language: 'pt' });
     expect(deps.compressAndSplit).not.toHaveBeenCalled();
     expect(record.text).toBe('texto');
     expect(record.filename).toBe('audio.ogg');
@@ -27,16 +27,16 @@ describe('transcribeUpload', () => {
   it('concatenates chunk texts in order for long files', async () => {
     const transcribeChunk = vi
       .fn()
-      .mockResolvedValueOnce('parte um.')
-      .mockResolvedValueOnce('parte dois.');
+      .mockResolvedValueOnce({ text: 'parte um.' })
+      .mockResolvedValueOnce({ text: 'parte dois.' });
     const deps = makeDeps({
       getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
       compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
       transcribeChunk,
     });
     const record = await transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg');
-    expect(transcribeChunk).toHaveBeenNthCalledWith(1, '/tmp/chunk_00.ogg');
-    expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg');
+    expect(transcribeChunk).toHaveBeenNthCalledWith(1, '/tmp/chunk_00.ogg', { withTimestamps: false, language: 'pt' });
+    expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg', { withTimestamps: false, language: 'pt' });
     expect(record.text).toBe('parte um. parte dois.');
   });
 
@@ -44,7 +44,7 @@ describe('transcribeUpload', () => {
     const repo = createTranscriptionRepo(':memory:');
     const transcribeChunk = vi
       .fn()
-      .mockResolvedValueOnce('parte um.')
+      .mockResolvedValueOnce({ text: 'parte um.' })
       .mockRejectedValueOnce(new Error('falha na API'));
     const deps = makeDeps({
       repo,

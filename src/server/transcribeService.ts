@@ -39,7 +39,8 @@ export async function transcribeUpload(
     const texts: string[] = [];
     for (let i = 0; i < chunkPaths.length; i++) {
       try {
-        texts.push(await deps.transcribeChunk(chunkPaths[i]));
+        const result = await deps.transcribeChunk(chunkPaths[i], { withTimestamps: false, language: 'pt' });
+        texts.push(result.text);
       } catch (error) {
         throw new TranscriptionApiError(
           `Falha ao transcrever o segmento ${i + 1} de ${chunkPaths.length}`,
