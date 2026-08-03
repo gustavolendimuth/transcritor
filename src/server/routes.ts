@@ -7,7 +7,20 @@ import fs from 'node:fs/promises';
 import type { TranscriptionRepo } from './db.js';
 import { UnsupportedAudioError, getAudioInfo, compressAndSplit } from './audio.js';
 import { TranscriptionApiError, type TranscribeChunkFn } from './openaiClient.js';
-import { transcribeUpload } from './transcribeService.js';
+import { transcribeUpload, type TranscribeUploadOptions } from './transcribeService.js';
+
+const ALLOWED_LANGUAGES = new Set(['pt', 'en', 'es']);
+
+export function parseTranscribeOptions(body: Record<string, unknown>): TranscribeUploadOptions {
+  const language =
+    typeof body.language === 'string' && ALLOWED_LANGUAGES.has(body.language)
+      ? body.language
+      : 'pt';
+  return {
+    withTimestamps: body.withTimestamps === 'true',
+    language,
+  };
+}
 
 export interface RouterDeps {
   repo: TranscriptionRepo;
@@ -32,6 +45,7 @@ export function createRouter(deps: RouterDeps): Router {
       res.status(400).json({ error: 'Nenhum arquivo de áudio enviado' });
       return;
     }
+    const options = parseTranscribeOptions(req.body);
     try {
       const record = await transcribeUpload(
         {
@@ -42,7 +56,7 @@ export function createRouter(deps: RouterDeps): Router {
         },
         req.file.path,
         req.file.originalname,
-        { withTimestamps: false, language: 'pt' }
+        options
       );
       res.status(200).json(record);
     } catch (error) {

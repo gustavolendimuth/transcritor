@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createRouter } from '../../src/server/routes.js';
+import { createRouter, parseTranscribeOptions } from '../../src/server/routes.js';
 import { createTranscriptionRepo, type TranscriptionRepo } from '../../src/server/db.js';
 
 describe('routes', () => {
@@ -70,5 +70,39 @@ describe('routes', () => {
   it('DELETE /api/history/:id returns 404 for a missing id', async () => {
     const res = await request(app).delete('/api/history/999');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('parseTranscribeOptions', () => {
+  it('defaults to withTimestamps=false and language=pt when the body is empty', () => {
+    expect(parseTranscribeOptions({})).toEqual({ withTimestamps: false, language: 'pt' });
+  });
+
+  it('parses withTimestamps=true and a valid language from string fields', () => {
+    expect(parseTranscribeOptions({ withTimestamps: 'true', language: 'en' })).toEqual({
+      withTimestamps: true,
+      language: 'en',
+    });
+  });
+
+  it('treats any value other than the string "true" as withTimestamps=false', () => {
+    expect(parseTranscribeOptions({ withTimestamps: 'yes' })).toEqual({
+      withTimestamps: false,
+      language: 'pt',
+    });
+  });
+
+  it('falls back to pt for an unsupported language', () => {
+    expect(parseTranscribeOptions({ language: 'fr' })).toEqual({
+      withTimestamps: false,
+      language: 'pt',
+    });
+  });
+
+  it('accepts es as a valid language', () => {
+    expect(parseTranscribeOptions({ language: 'es' })).toEqual({
+      withTimestamps: false,
+      language: 'es',
+    });
   });
 });
