@@ -1,6 +1,7 @@
 # Transcritor
 
-Ferramenta pessoal para transcrever áudios via OpenAI `gpt-4o-transcribe`,
+Ferramenta pessoal para transcrever áudios via API da OpenAI (`whisper-1`
+com tempo nas falas, ou `gpt-4o-transcribe` sem),
 com histórico salvo em SQLite. Sem contas de usuário — protegida por HTTP
 Basic Auth.
 

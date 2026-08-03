@@ -131,11 +131,32 @@ describe('transcribeUpload', () => {
     expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg', WITH_TIMESTAMPS);
   });
 
-  it('produces empty text when withTimestamps is true but the response has no segments', async () => {
+  it('falls back to chunk text for chunks with no segments while other chunks still use real segments', async () => {
+    const transcribeChunk = vi
+      .fn()
+      .mockResolvedValueOnce({
+        text: 'ola tudo bem',
+        segments: [{ start: 0, text: 'Ola.' }],
+      })
+      .mockResolvedValueOnce({ text: 'sem segmentos aqui' });
+    const getAudioInfo = vi
+      .fn()
+      .mockResolvedValueOnce({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })
+      .mockResolvedValueOnce({ durationSeconds: 300, sizeBytes: 5 * 1024 * 1024 });
+    const deps = makeDeps({
+      getAudioInfo,
+      compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
+      transcribeChunk,
+    });
+    const record = await transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', WITH_TIMESTAMPS);
+    expect(record.text).toBe('[00:00:00] Ola.\n[00:05:00] sem segmentos aqui');
+  });
+
+  it('falls back to the chunk text prefixed with its offset when withTimestamps is true but the response has no segments', async () => {
     const deps = makeDeps({
       transcribeChunk: vi.fn(async () => ({ text: 'ignorado' })),
     });
     const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg', WITH_TIMESTAMPS);
-    expect(record.text).toBe('');
+    expect(record.text).toBe('[00:00:00] ignorado');
   });
 });

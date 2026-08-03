@@ -62,11 +62,17 @@ export async function transcribeUpload(
       }
 
       if (options.withTimestamps) {
-        for (const segment of result.segments ?? []) {
-          timestampedLines.push(`[${formatTimestamp(offsetSeconds + segment.start)}] ${segment.text}`);
+        if (result.segments && result.segments.length > 0) {
+          for (const segment of result.segments) {
+            timestampedLines.push(`[${formatTimestamp(offsetSeconds + segment.start)}] ${segment.text}`);
+          }
+        } else if (result.text.trim()) {
+          timestampedLines.push(`[${formatTimestamp(offsetSeconds)}] ${result.text.trim()}`);
         }
-        const chunkInfo = await deps.getAudioInfo(chunkPaths[i]);
-        offsetSeconds += chunkInfo.durationSeconds;
+        if (i < chunkPaths.length - 1) {
+          const chunkInfo = await deps.getAudioInfo(chunkPaths[i]);
+          offsetSeconds += chunkInfo.durationSeconds;
+        }
       } else {
         texts.push(result.text);
       }
