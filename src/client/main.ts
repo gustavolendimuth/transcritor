@@ -21,6 +21,7 @@ const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
 const dropZone = document.getElementById('drop-zone') as HTMLLabelElement;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
+const dropzoneFilename = document.getElementById('dropzone-filename') as HTMLSpanElement;
 const transcribeBtn = document.getElementById('transcribe-btn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLParagraphElement;
 const loadingBackdrop = document.getElementById('loading-backdrop') as HTMLDivElement;
@@ -43,6 +44,13 @@ for (const lang of LANGUAGES) {
 
 let selectedFile: File | null = null;
 let currentFilename = 'transcricao.txt';
+
+function setSelectedFile(file: File | null) {
+  selectedFile = file;
+  transcribeBtn.disabled = !file;
+  dropZone.classList.toggle('has-file', Boolean(file));
+  dropzoneFilename.textContent = file ? file.name : '';
+}
 
 function setStatus(message: string) {
   statusEl.textContent = message;
@@ -87,9 +95,7 @@ window.addEventListener('auth:unauthorized', () => {
 });
 
 fileInput.addEventListener('change', () => {
-  selectedFile = fileInput.files?.[0] ?? null;
-  transcribeBtn.disabled = !selectedFile;
-  setStatus(selectedFile ? `Selecionado: ${selectedFile.name}` : '');
+  setSelectedFile(fileInput.files?.[0] ?? null);
 });
 
 dropZone.addEventListener('dragover', (event) => {
@@ -106,9 +112,7 @@ dropZone.addEventListener('drop', (event) => {
   dropZone.classList.remove('is-dragover');
   const file = event.dataTransfer?.files?.[0];
   if (file) {
-    selectedFile = file;
-    transcribeBtn.disabled = false;
-    setStatus(`Selecionado: ${file.name}`);
+    setSelectedFile(file);
   }
 });
 

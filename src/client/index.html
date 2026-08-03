@@ -48,7 +48,7 @@
         <section id="upload-section" class="card">
           <label id="drop-zone" for="file-input" class="dropzone">
             <svg
-              class="dropzone-icon"
+              class="dropzone-icon dropzone-icon-upload"
               width="32"
               height="32"
               viewBox="0 0 24 24"
@@ -64,7 +64,23 @@
                 stroke-linejoin="round"
               />
             </svg>
-            <span>Arraste um áudio aqui ou clique para escolher</span>
+            <svg
+              class="dropzone-icon dropzone-icon-check"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="dropzone-prompt">Arraste um áudio aqui ou clique para escolher</span>
+            <span class="dropzone-file">
+              <span id="dropzone-filename" class="dropzone-filename"></span>
+              <small>Clique para trocar o arquivo</small>
+            </span>
             <input id="file-input" type="file" accept="audio/*" hidden />
           </label>
           <div class="upload-options">

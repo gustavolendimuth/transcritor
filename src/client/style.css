@@ -198,6 +198,39 @@ input {
   color: var(--ctp-mauve);
 }
 
+.dropzone-icon-check,
+.dropzone-file {
+  display: none;
+}
+
+.dropzone.has-file .dropzone-icon-upload,
+.dropzone.has-file .dropzone-prompt {
+  display: none;
+}
+
+.dropzone.has-file .dropzone-icon-check {
+  display: block;
+  color: var(--ctp-green);
+}
+
+.dropzone.has-file .dropzone-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dropzone-filename {
+  color: var(--ctp-text);
+  font-size: 0.9375rem;
+  word-break: break-all;
+}
+
+.dropzone-file small {
+  color: var(--ctp-subtext0);
+  font-size: 0.8125rem;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
