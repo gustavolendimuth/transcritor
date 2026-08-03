@@ -3,7 +3,11 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { planProcessing, UnsupportedAudioError, type AudioInfo } from './audio.js';
-import { TranscriptionApiError, type TranscribeChunkFn } from './openaiClient.js';
+import {
+  TranscriptionApiError,
+  type TranscribeChunkFn,
+  type TranscribeChunkResult,
+} from './openaiClient.js';
 import type { TranscriptionRepo, TranscriptionRecord } from './db.js';
 
 export interface TranscribeUploadDeps {
@@ -13,10 +17,16 @@ export interface TranscribeUploadDeps {
   compressAndSplit: (inputPath: string, outputDir: string) => Promise<string[]>;
 }
 
+export interface TranscribeUploadOptions {
+  withTimestamps: boolean;
+  language: string;
+}
+
 export async function transcribeUpload(
   deps: TranscribeUploadDeps,
   uploadedFilePath: string,
-  originalFilename: string
+  originalFilename: string,
+  options: TranscribeUploadOptions
 ): Promise<TranscriptionRecord> {
   const info = await deps.getAudioInfo(uploadedFilePath);
   const plan = planProcessing(info);
@@ -37,18 +47,35 @@ export async function transcribeUpload(
     }
 
     const texts: string[] = [];
+    const timestampedLines: string[] = [];
+    let offsetSeconds = 0;
+
     for (let i = 0; i < chunkPaths.length; i++) {
+      let result: TranscribeChunkResult;
       try {
-        const result = await deps.transcribeChunk(chunkPaths[i], { withTimestamps: false, language: 'pt' });
-        texts.push(result.text);
+        result = await deps.transcribeChunk(chunkPaths[i], options);
       } catch (error) {
         throw new TranscriptionApiError(
           `Falha ao transcrever o segmento ${i + 1} de ${chunkPaths.length}`,
           error
         );
       }
+
+      if (options.withTimestamps) {
+        for (const segment of result.segments ?? []) {
+          timestampedLines.push(`[${formatTimestamp(offsetSeconds + segment.start)}] ${segment.text}`);
+        }
+        const chunkInfo = await deps.getAudioInfo(chunkPaths[i]);
+        offsetSeconds += chunkInfo.durationSeconds;
+      } else {
+        texts.push(result.text);
+      }
     }
-    const fullText = texts.join(' ').trim();
+
+    const fullText = options.withTimestamps
+      ? timestampedLines.join('\n')
+      : texts.join(' ').trim();
+
     return deps.repo.insert({
       filename: originalFilename,
       text: fullText,
@@ -59,4 +86,11 @@ export async function transcribeUpload(
       await fs.rm(workDir, { recursive: true, force: true });
     }
   }
+}
+
+function formatTimestamp(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return [hours, minutes, seconds].map((n) => String(n).padStart(2, '0')).join(':');
 }

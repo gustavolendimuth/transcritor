@@ -41,7 +41,8 @@ export function createRouter(deps: RouterDeps): Router {
           compressAndSplit,
         },
         req.file.path,
-        req.file.originalname
+        req.file.originalname,
+        { withTimestamps: false, language: 'pt' }
       );
       res.status(200).json(record);
     } catch (error) {
