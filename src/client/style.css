@@ -288,13 +288,6 @@ input {
   border-color: var(--ctp-surface2);
 }
 
-.status {
-  min-height: 1.25em;
-  color: var(--ctp-subtext0);
-  font-size: 0.875rem;
-  margin: var(--space-2) 0 0;
-}
-
 .spinner {
   flex-shrink: 0;
   width: 16px;
@@ -319,6 +312,23 @@ input {
   margin: 0;
   color: var(--ctp-subtext1);
   font-size: 0.9375rem;
+}
+
+.alert-modal {
+  gap: var(--space-3);
+}
+
+.alert-message {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.alert-message--error {
+  color: var(--ctp-red);
+}
+
+.alert-message--success {
+  color: var(--ctp-green);
 }
 
 @keyframes spin {

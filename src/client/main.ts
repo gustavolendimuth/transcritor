@@ -23,7 +23,9 @@ const dropZone = document.getElementById('drop-zone') as HTMLLabelElement;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const dropzoneFilename = document.getElementById('dropzone-filename') as HTMLSpanElement;
 const transcribeBtn = document.getElementById('transcribe-btn') as HTMLButtonElement;
-const statusEl = document.getElementById('status') as HTMLParagraphElement;
+const alertBackdrop = document.getElementById('alert-backdrop') as HTMLDivElement;
+const alertMessage = document.getElementById('alert-message') as HTMLParagraphElement;
+const alertOkBtn = document.getElementById('alert-ok-btn') as HTMLButtonElement;
 const loadingBackdrop = document.getElementById('loading-backdrop') as HTMLDivElement;
 const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
@@ -52,9 +54,16 @@ function setSelectedFile(file: File | null) {
   dropzoneFilename.textContent = file ? file.name : '';
 }
 
-function setStatus(message: string) {
-  statusEl.textContent = message;
+function showAlert(message: string, type: 'error' | 'success') {
+  alertMessage.textContent = message;
+  alertMessage.classList.toggle('alert-message--error', type === 'error');
+  alertMessage.classList.toggle('alert-message--success', type === 'success');
+  alertBackdrop.hidden = false;
 }
+
+alertOkBtn.addEventListener('click', () => {
+  alertBackdrop.hidden = true;
+});
 
 function showApp() {
   loginBackdrop.hidden = true;
@@ -133,14 +142,16 @@ transcribeBtn.addEventListener('click', async () => {
     if (!response.ok) {
       throw new Error(data.error ?? 'Erro ao transcrever');
     }
+    loadingBackdrop.hidden = true;
     showResult(data as TranscriptionRecord);
     await loadHistory();
+    showAlert('Concluído.', 'success');
   } catch (error) {
-    setStatus(error instanceof Error ? error.message : 'Erro desconhecido');
+    loadingBackdrop.hidden = true;
+    showAlert(error instanceof Error ? error.message : 'Erro desconhecido', 'error');
   } finally {
     transcribeBtn.disabled = false;
     transcribeBtn.classList.remove('is-loading');
-    loadingBackdrop.hidden = true;
   }
 });
 
@@ -148,12 +159,11 @@ function showResult(record: TranscriptionRecord) {
   resultText.value = record.text;
   currentFilename = record.filename.replace(/\.[^.]+$/, '') + '.txt';
   resultSection.hidden = false;
-  setStatus('Concluído.');
 }
 
 copyBtn.addEventListener('click', async () => {
   await navigator.clipboard.writeText(resultText.value);
-  setStatus('Copiado para a área de transferência.');
+  showAlert('Copiado para a área de transferência.', 'success');
 });
 
 downloadBtn.addEventListener('click', () => {
@@ -211,7 +221,7 @@ async function loadHistory() {
         event.stopPropagation();
         const deleteResponse = await authFetch(`/api/history/${record.id}`, { method: 'DELETE' });
         if (!deleteResponse.ok) {
-          setStatus('Não foi possível excluir a transcrição.');
+          showAlert('Não foi possível excluir a transcrição.', 'error');
           return;
         }
         await loadHistory();
@@ -221,7 +231,7 @@ async function loadHistory() {
       historyList.append(li);
     }
   } catch (error) {
-    setStatus(error instanceof Error ? error.message : 'Erro ao carregar histórico');
+    showAlert(error instanceof Error ? error.message : 'Erro ao carregar histórico', 'error');
   }
 }
 

@@ -106,7 +106,6 @@
               <span></span><span></span><span></span><span></span><span></span>
             </span>
           </button>
-          <p id="status" class="status"></p>
         </section>
 
         <section id="result-section" class="card" hidden>
@@ -134,6 +133,12 @@
         <p class="loading-message">
           Transcrevendo... isso pode levar alguns minutos para áudios longos.
         </p>
+      </div>
+    </div>
+    <div id="alert-backdrop" class="backdrop" hidden>
+      <div class="modal alert-modal" role="alertdialog" aria-live="assertive">
+        <p id="alert-message" class="alert-message"></p>
+        <button id="alert-ok-btn" type="button" class="btn btn-primary">OK</button>
       </div>
     </div>
     <script type="module" src="./main.ts"></script>
