@@ -3,13 +3,23 @@ import express from 'express';
 import request from 'supertest';
 import { createRouter, parseTranscribeOptions } from '../../src/server/routes.js';
 import { createTranscriptionRepo, type TranscriptionRepo } from '../../src/server/db.js';
+import {
+  extractAudioAndSplit,
+  getMediaInfo,
+  UnsupportedMediaError,
+} from '../../src/server/audio.js';
 
-vi.mock('../../src/server/audio.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/server/audio.js')>();
+vi.mock('../../src/server/audio.js', () => {
+  class UnsupportedMediaError extends Error {
+    constructor(message: string, public readonly cause?: unknown) {
+      super(message);
+      this.name = 'UnsupportedMediaError';
+    }
+  }
   return {
-    ...actual,
-    getAudioInfo: vi.fn(async () => ({ durationSeconds: 5, sizeBytes: 1024 })),
-    compressAndSplit: vi.fn(async () => []),
+    UnsupportedMediaError,
+    getMediaInfo: vi.fn(async () => ({ durationSeconds: 5 })),
+    extractAudioAndSplit: vi.fn(async () => ['/tmp/chunk_000.ogg']),
   };
 });
 
@@ -18,6 +28,8 @@ describe('routes', () => {
   let app: express.Express;
 
   beforeEach(() => {
+    vi.mocked(getMediaInfo).mockReset().mockResolvedValue({ durationSeconds: 5 });
+    vi.mocked(extractAudioAndSplit).mockReset().mockResolvedValue(['/tmp/chunk_000.ogg']);
     repo = createTranscriptionRepo(':memory:');
     app = express();
     app.use('/api', createRouter({ repo, transcribeChunk: vi.fn(async () => ({ text: 'texto' })) }));
@@ -27,10 +39,21 @@ describe('routes', () => {
     repo.close();
   });
 
-  it('POST /api/transcribe without a file returns 400', async () => {
+  it('POST /api/transcribe without media returns the no-media message', async () => {
     const res = await request(app).post('/api/transcribe');
     expect(res.status).toBe(400);
-    expect(res.body.error).toBeTypeOf('string');
+    expect(res.body.error).toBe('Nenhum arquivo de mídia enviado');
+  });
+
+  it('POST /api/transcribe returns a 400 media-format message for unsupported media', async () => {
+    vi.mocked(getMediaInfo).mockRejectedValueOnce(new UnsupportedMediaError('ffprobe falhou'));
+
+    const res = await request(app)
+      .post('/api/transcribe')
+      .attach('audio', Buffer.from('conteudo'), 'video.mp4');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Formato de mídia não suportado' });
   });
 
   it('POST /api/transcribe with the wrong field name returns 400 JSON, not an HTML stack trace', async () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { transcribeUpload, type TranscribeUploadDeps } from '../../src/server/transcribeService.js';
 import { createTranscriptionRepo } from '../../src/server/db.js';
 
@@ -10,165 +11,124 @@ function makeDeps(overrides: Partial<TranscribeUploadDeps> = {}): TranscribeUplo
   return {
     repo: createTranscriptionRepo(':memory:'),
     transcribeChunk: vi.fn(async () => ({ text: 'texto' })),
-    getAudioInfo: vi.fn(async () => ({ durationSeconds: 60, sizeBytes: 1024 })),
-    compressAndSplit: vi.fn(async () => []),
+    getMediaInfo: vi.fn(async () => ({ durationSeconds: 60 })),
+    extractAudioAndSplit: vi.fn(async () => []),
     ...overrides,
   };
 }
 
+async function writeChunk(outputDir: string, index: number): Promise<string> {
+  await fs.mkdir(outputDir, { recursive: true });
+  const chunkPath = path.join(outputDir, `chunk_${String(index).padStart(3, '0')}.ogg`);
+  await fs.writeFile(chunkPath, 'audio');
+  return chunkPath;
+}
+
+async function expectDirectoryRemoved(directory: string | undefined): Promise<void> {
+  expect(directory).toBeDefined();
+  await expect(fs.access(directory!)).rejects.toThrow();
+}
+
 describe('transcribeUpload', () => {
-  it('transcribes a short file without splitting and saves it', async () => {
-    const deps = makeDeps();
-    const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg', NO_TIMESTAMPS);
-    expect(deps.transcribeChunk).toHaveBeenCalledTimes(1);
-    expect(deps.transcribeChunk).toHaveBeenCalledWith('/tmp/audio.ogg', NO_TIMESTAMPS);
-    expect(deps.compressAndSplit).not.toHaveBeenCalled();
-    expect(record.text).toBe('texto');
-    expect(record.filename).toBe('audio.ogg');
-    expect(record.withTimestamps).toBe(false);
-  });
-
-  it('saves the upload project tag without sending it to OpenAI', async () => {
-    const deps = makeDeps();
-    const options = { ...NO_TIMESTAMPS, projectTag: 'Cliente Acme' };
-
-    const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg', options);
-
-    expect(record.projectTag).toBe('Cliente Acme');
-    expect(deps.transcribeChunk).toHaveBeenCalledWith('/tmp/audio.ogg', NO_TIMESTAMPS);
-  });
-
-  it('concatenates chunk texts in order for long files', async () => {
-    const transcribeChunk = vi
-      .fn()
-      .mockResolvedValueOnce({ text: 'parte um.' })
-      .mockResolvedValueOnce({ text: 'parte dois.' });
-    const deps = makeDeps({
-      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
-      compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
-      transcribeChunk,
+  it('converts even a short uploaded media file before transcribing it and removes the work directory', async () => {
+    let workDir: string | undefined;
+    const extractAudioAndSplit = vi.fn(async (_input: string, outputDir: string) => {
+      workDir = outputDir;
+      return [await writeChunk(outputDir, 0)];
     });
-    const record = await transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', NO_TIMESTAMPS);
-    expect(transcribeChunk).toHaveBeenNthCalledWith(1, '/tmp/chunk_00.ogg', NO_TIMESTAMPS);
-    expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg', NO_TIMESTAMPS);
-    expect(record.text).toBe('parte um. parte dois.');
-  });
+    const transcribeChunk = vi.fn(async () => ({ text: 'texto normalizado' }));
+    const deps = makeDeps({ extractAudioAndSplit, transcribeChunk });
 
-  it('does not save anything if a chunk fails to transcribe', async () => {
-    const repo = createTranscriptionRepo(':memory:');
-    const transcribeChunk = vi
-      .fn()
-      .mockResolvedValueOnce({ text: 'parte um.' })
-      .mockRejectedValueOnce(new Error('falha na API'));
-    const deps = makeDeps({
-      repo,
-      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
-      compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
-      transcribeChunk,
-    });
-    await expect(
-      transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', NO_TIMESTAMPS)
-    ).rejects.toThrow('Falha ao transcrever o segmento 2 de 2');
-    expect(repo.list()).toHaveLength(0);
-  });
+    const record = await transcribeUpload(deps, '/tmp/aula-curta.mp4', 'aula-curta.mp4', NO_TIMESTAMPS);
 
-  it('does not save anything if compressAndSplit fails', async () => {
-    const repo = createTranscriptionRepo(':memory:');
-    let capturedWorkDir: string | undefined;
-    const compressAndSplit = vi.fn(async (_input: string, outputDir: string) => {
-      capturedWorkDir = outputDir;
-      throw new Error('falha no ffmpeg');
-    });
-    const deps = makeDeps({
-      repo,
-      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
-      compressAndSplit,
-    });
-    const rmSpy = vi.spyOn(fs, 'rm');
-    try {
-      await expect(
-        transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', NO_TIMESTAMPS)
-      ).rejects.toThrow('falha no ffmpeg');
-      expect(repo.list()).toHaveLength(0);
-      expect(capturedWorkDir).toBeDefined();
-      expect(rmSpy).toHaveBeenCalledWith(capturedWorkDir, { recursive: true, force: true });
-    } finally {
-      rmSpy.mockRestore();
-    }
-  });
-
-  it('rejects with UnsupportedAudioError when compressAndSplit produces no chunks', async () => {
-    const repo = createTranscriptionRepo(':memory:');
-    const deps = makeDeps({
-      repo,
-      getAudioInfo: vi.fn(async () => ({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })),
-      compressAndSplit: vi.fn(async () => []),
-    });
-    await expect(
-      transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', NO_TIMESTAMPS)
-    ).rejects.toThrow('Não foi possível extrair áudio do arquivo enviado');
-    expect(repo.list()).toHaveLength(0);
-  });
-
-  it('formats segments into timestamped lines with an accumulated offset across chunks', async () => {
-    const transcribeChunk = vi
-      .fn()
-      .mockResolvedValueOnce({
-        text: 'ola tudo bem',
-        segments: [
-          { start: 0, text: 'Ola.' },
-          { start: 2.5, text: 'Tudo bem?' },
-        ],
-      })
-      .mockResolvedValueOnce({
-        text: 'aqui e a parte dois',
-        segments: [{ start: 1, text: 'Aqui é a parte dois.' }],
-      });
-    const getAudioInfo = vi
-      .fn()
-      .mockResolvedValueOnce({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })
-      .mockResolvedValueOnce({ durationSeconds: 300, sizeBytes: 5 * 1024 * 1024 })
-      .mockResolvedValueOnce({ durationSeconds: 200, sizeBytes: 4 * 1024 * 1024 });
-    const deps = makeDeps({
-      getAudioInfo,
-      compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
-      transcribeChunk,
-    });
-    const record = await transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', WITH_TIMESTAMPS);
-    expect(record.text).toBe(
-      '[00:00:00] Ola.\n[00:00:02] Tudo bem?\n[00:05:01] Aqui é a parte dois.'
+    expect(extractAudioAndSplit).toHaveBeenCalledWith('/tmp/aula-curta.mp4', expect.any(String));
+    expect(transcribeChunk).toHaveBeenCalledWith(
+      expect.stringMatching(/chunk_000\.ogg$/),
+      NO_TIMESTAMPS
     );
-    expect(transcribeChunk).toHaveBeenNthCalledWith(1, '/tmp/chunk_00.ogg', WITH_TIMESTAMPS);
-    expect(transcribeChunk).toHaveBeenNthCalledWith(2, '/tmp/chunk_01.ogg', WITH_TIMESTAMPS);
-    expect(record.withTimestamps).toBe(true);
+    expect(record).toMatchObject({
+      filename: 'aula-curta.mp4',
+      text: 'texto normalizado',
+      durationSeconds: 60,
+    });
+    await expectDirectoryRemoved(workDir);
   });
 
-  it('falls back to chunk text for chunks with no segments while other chunks still use real segments', async () => {
+  it('transcribes returned chunks in order and accumulates their timestamp offsets', async () => {
+    const chunks = ['/tmp/chunk_000.ogg', '/tmp/chunk_001.ogg'];
     const transcribeChunk = vi
       .fn()
-      .mockResolvedValueOnce({
-        text: 'ola tudo bem',
-        segments: [{ start: 0, text: 'Ola.' }],
-      })
-      .mockResolvedValueOnce({ text: 'sem segmentos aqui' });
-    const getAudioInfo = vi
+      .mockResolvedValueOnce({ text: 'primeira', segments: [{ start: 2, text: 'Primeira.' }] })
+      .mockResolvedValueOnce({ text: 'segunda', segments: [{ start: 1, text: 'Segunda.' }] });
+    const getMediaInfo = vi
       .fn()
-      .mockResolvedValueOnce({ durationSeconds: 700, sizeBytes: 30 * 1024 * 1024 })
-      .mockResolvedValueOnce({ durationSeconds: 300, sizeBytes: 5 * 1024 * 1024 });
+      .mockResolvedValueOnce({ durationSeconds: 700 })
+      .mockResolvedValueOnce({ durationSeconds: 300 });
     const deps = makeDeps({
-      getAudioInfo,
-      compressAndSplit: vi.fn(async () => ['/tmp/chunk_00.ogg', '/tmp/chunk_01.ogg']),
+      getMediaInfo,
+      extractAudioAndSplit: vi.fn(async () => chunks),
       transcribeChunk,
     });
-    const record = await transcribeUpload(deps, '/tmp/long.ogg', 'long.ogg', WITH_TIMESTAMPS);
-    expect(record.text).toBe('[00:00:00] Ola.\n[00:05:00] sem segmentos aqui');
+
+    const record = await transcribeUpload(deps, '/tmp/aula.mp4', 'aula.mp4', WITH_TIMESTAMPS);
+
+    expect(transcribeChunk).toHaveBeenNthCalledWith(1, chunks[0], WITH_TIMESTAMPS);
+    expect(transcribeChunk).toHaveBeenNthCalledWith(2, chunks[1], WITH_TIMESTAMPS);
+    expect(record.text).toBe('[00:00:02] Primeira.\n[00:05:01] Segunda.');
   });
 
-  it('falls back to the chunk text prefixed with its offset when withTimestamps is true but the response has no segments', async () => {
+  it('removes the work directory when FFmpeg extraction fails', async () => {
+    let workDir: string | undefined;
     const deps = makeDeps({
-      transcribeChunk: vi.fn(async () => ({ text: 'ignorado' })),
+      extractAudioAndSplit: vi.fn(async (_input: string, outputDir: string) => {
+        workDir = outputDir;
+        await fs.mkdir(outputDir, { recursive: true });
+        throw new Error('falha no ffmpeg');
+      }),
     });
-    const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg', WITH_TIMESTAMPS);
-    expect(record.text).toBe('[00:00:00] ignorado');
+
+    await expect(
+      transcribeUpload(deps, '/tmp/aula.mp4', 'aula.mp4', NO_TIMESTAMPS)
+    ).rejects.toThrow('falha no ffmpeg');
+
+    await expectDirectoryRemoved(workDir);
+  });
+
+  it('removes the work directory and rejects an empty audio extraction', async () => {
+    let workDir: string | undefined;
+    const deps = makeDeps({
+      extractAudioAndSplit: vi.fn(async (_input: string, outputDir: string) => {
+        workDir = outputDir;
+        await fs.mkdir(outputDir, { recursive: true });
+        return [];
+      }),
+    });
+
+    await expect(
+      transcribeUpload(deps, '/tmp/sem-audio.mp4', 'sem-audio.mp4', NO_TIMESTAMPS)
+    ).rejects.toThrow('Não foi possível extrair áudio do arquivo enviado');
+
+    await expectDirectoryRemoved(workDir);
+  });
+
+  it('removes the work directory and saves no record when OpenAI transcription fails', async () => {
+    let workDir: string | undefined;
+    const repo = createTranscriptionRepo(':memory:');
+    const deps = makeDeps({
+      repo,
+      extractAudioAndSplit: vi.fn(async (_input: string, outputDir: string) => {
+        workDir = outputDir;
+        return [await writeChunk(outputDir, 0)];
+      }),
+      transcribeChunk: vi.fn(async () => {
+        throw new Error('OpenAI indisponível');
+      }),
+    });
+
+    await expect(
+      transcribeUpload(deps, '/tmp/aula.mp4', 'aula.mp4', NO_TIMESTAMPS)
+    ).rejects.toThrow('Falha ao transcrever o segmento 1 de 1');
+    expect(repo.list()).toHaveLength(0);
+    await expectDirectoryRemoved(workDir);
   });
 });

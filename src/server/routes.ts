@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import type { TranscriptionRepo } from './db.js';
-import { UnsupportedAudioError, getAudioInfo, compressAndSplit } from './audio.js';
+import { UnsupportedMediaError, getMediaInfo, extractAudioAndSplit } from './audio.js';
 import { TranscriptionApiError, type TranscribeChunkFn } from './openaiClient.js';
 import { transcribeUpload, type TranscribeUploadOptions } from './transcribeService.js';
 import { isLanguage, type Language } from '../shared/languages.js';
@@ -40,12 +40,11 @@ export function createRouter(deps: RouterDeps): Router {
         cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
       },
     }),
-    limits: { fileSize: 100 * 1024 * 1024 },
   });
 
   router.post('/transcribe', upload.single('audio'), async (req, res) => {
     if (!req.file) {
-      res.status(400).json({ error: 'Nenhum arquivo de áudio enviado' });
+      res.status(400).json({ error: 'Nenhum arquivo de mídia enviado' });
       return;
     }
     const options = parseTranscribeOptions(req.body);
@@ -54,8 +53,8 @@ export function createRouter(deps: RouterDeps): Router {
         {
           repo: deps.repo,
           transcribeChunk: deps.transcribeChunk,
-          getAudioInfo,
-          compressAndSplit,
+          getMediaInfo,
+          extractAudioAndSplit,
         },
         req.file.path,
         req.file.originalname,
@@ -63,9 +62,9 @@ export function createRouter(deps: RouterDeps): Router {
       );
       res.status(200).json(record);
     } catch (error) {
-      if (error instanceof UnsupportedAudioError) {
+      if (error instanceof UnsupportedMediaError) {
         console.error(error.message, error.cause);
-        res.status(400).json({ error: 'Formato de áudio não suportado' });
+        res.status(400).json({ error: 'Formato de mídia não suportado' });
       } else if (error instanceof TranscriptionApiError) {
         res.status(502).json({ error: error.message });
       } else {

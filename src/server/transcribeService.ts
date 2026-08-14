@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { planProcessing, UnsupportedAudioError, type AudioInfo } from './audio.js';
+import { UnsupportedMediaError, type MediaInfo } from './audio.js';
 import {
   TranscriptionApiError,
   type TranscribeChunkFn,
@@ -14,8 +14,8 @@ import type { TranscriptionRepo, TranscriptionRecord } from './db.js';
 export interface TranscribeUploadDeps {
   repo: TranscriptionRepo;
   transcribeChunk: TranscribeChunkFn;
-  getAudioInfo: (filePath: string) => Promise<AudioInfo>;
-  compressAndSplit: (inputPath: string, outputDir: string) => Promise<string[]>;
+  getMediaInfo: (filePath: string) => Promise<MediaInfo>;
+  extractAudioAndSplit: (inputPath: string, outputDir: string) => Promise<string[]>;
 }
 
 export interface TranscribeUploadOptions extends TranscribeChunkOptions {
@@ -29,22 +29,14 @@ export async function transcribeUpload(
   options: TranscribeUploadOptions
 ): Promise<TranscriptionRecord> {
   const { projectTag = null, ...transcribeOptions } = options;
-  const info = await deps.getAudioInfo(uploadedFilePath);
-  const plan = planProcessing(info);
-
-  let chunkPaths: string[];
-  let workDir: string | undefined;
+  const workDir = path.join(os.tmpdir(), `transcritor-${randomUUID()}`);
 
   try {
-    if (plan.needsProcessing) {
-      workDir = path.join(os.tmpdir(), `transcritor-${randomUUID()}`);
-      chunkPaths = await deps.compressAndSplit(uploadedFilePath, workDir);
-    } else {
-      chunkPaths = [uploadedFilePath];
-    }
+    const info = await deps.getMediaInfo(uploadedFilePath);
+    const chunkPaths = await deps.extractAudioAndSplit(uploadedFilePath, workDir);
 
     if (chunkPaths.length === 0) {
-      throw new UnsupportedAudioError('Não foi possível extrair áudio do arquivo enviado');
+      throw new UnsupportedMediaError('Não foi possível extrair áudio do arquivo enviado');
     }
 
     const texts: string[] = [];
@@ -71,7 +63,7 @@ export async function transcribeUpload(
           timestampedLines.push(`[${formatTimestamp(offsetSeconds)}] ${result.text.trim()}`);
         }
         if (i < chunkPaths.length - 1) {
-          const chunkInfo = await deps.getAudioInfo(chunkPaths[i]);
+          const chunkInfo = await deps.getMediaInfo(chunkPaths[i]);
           offsetSeconds += chunkInfo.durationSeconds;
         }
       } else {
@@ -91,9 +83,7 @@ export async function transcribeUpload(
       withTimestamps: options.withTimestamps,
     });
   } finally {
-    if (workDir) {
-      await fs.rm(workDir, { recursive: true, force: true });
-    }
+    await fs.rm(workDir, { recursive: true, force: true });
   }
 }
 
