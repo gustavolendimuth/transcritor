@@ -46,9 +46,11 @@ describe('routes', () => {
   });
 
   it('POST /api/transcribe returns a 400 media-format message without logging diagnostics for unsupported media', async () => {
-    vi.mocked(getMediaInfo).mockRejectedValueOnce(
-      new UnsupportedMediaError('ffprobe falhou', new Error('/tmp/upload-diagnostico-privado.mp4'))
-    );
+    const unsupportedError = new UnsupportedMediaError('ffprobe falhou');
+    Object.defineProperty(unsupportedError, 'cause', {
+      value: new Error('/tmp/upload-diagnostico-privado.mp4'),
+    });
+    vi.mocked(getMediaInfo).mockRejectedValueOnce(unsupportedError);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     try {

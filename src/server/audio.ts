@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 const execFileAsync = promisify(execFile);
 
 export class UnsupportedMediaError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(message: string) {
     super(message);
     this.name = 'UnsupportedMediaError';
   }
@@ -35,8 +35,8 @@ export async function getMediaInfo(filePath: string): Promise<MediaInfo> {
       throw new Error('ffprobe returned invalid duration');
     }
     return { durationSeconds };
-  } catch (error) {
-    throw new UnsupportedMediaError('Não foi possível ler o arquivo de mídia', error);
+  } catch {
+    throw new UnsupportedMediaError('Não foi possível ler o arquivo de mídia');
   }
 }
 
@@ -63,8 +63,8 @@ export async function extractAudioAndSplit(inputPath: string, outputDir: string)
       String(CHUNK_DURATION_SECONDS),
       pattern,
     ]);
-  } catch (error) {
-    throw new UnsupportedMediaError('Falha ao extrair áudio da mídia', error);
+  } catch {
+    throw new UnsupportedMediaError('Falha ao extrair áudio da mídia');
   }
   const files = await fs.readdir(outputDir);
   return files

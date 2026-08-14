@@ -56,6 +56,7 @@ describe('media tools', () => {
       name: UnsupportedMediaError.name,
       message: 'Não foi possível ler o arquivo de mídia',
     });
+    await expect(getMediaInfo('/tmp/corrompido.mp4')).rejects.not.toHaveProperty('cause');
   });
 
   it('extracts the first audio stream into sorted five-minute Opus chunks', async () => {
@@ -104,5 +105,6 @@ describe('media tools', () => {
       name: UnsupportedMediaError.name,
       message: 'Falha ao extrair áudio da mídia',
     });
+    await expect(extractAudioAndSplit('/tmp/sem-audio.mp4', outputDir)).rejects.not.toHaveProperty('cause');
   });
 });
