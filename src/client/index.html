@@ -76,12 +76,12 @@
             >
               <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            <span class="dropzone-prompt">Arraste um áudio aqui ou clique para escolher</span>
+            <span class="dropzone-prompt">Arraste áudios aqui ou clique para escolher</span>
             <span class="dropzone-file">
               <span id="dropzone-filename" class="dropzone-filename"></span>
               <small>Clique para trocar o arquivo</small>
             </span>
-            <input id="file-input" type="file" accept="audio/*" hidden />
+            <input id="file-input" type="file" accept="audio/*" multiple hidden />
           </label>
           <div class="upload-options">
             <label class="checkbox-field">
@@ -99,6 +99,10 @@
               <span>Idioma</span>
               <select id="language-select"></select>
             </label>
+            <label class="field">
+              <span>Projeto</span>
+              <input id="upload-project-tag" type="text" list="project-tag-suggestions" placeholder="Ex.: Cliente Acme" />
+            </label>
           </div>
           <button id="transcribe-btn" type="button" class="btn btn-primary" disabled>
             <span class="btn-label">Transcrever</span>
@@ -106,11 +110,21 @@
               <span></span><span></span><span></span><span></span><span></span>
             </span>
           </button>
+          <ul id="upload-queue" class="upload-queue" aria-live="polite" hidden></ul>
         </section>
 
         <section id="result-section" class="card" hidden>
           <h2>Resultado</h2>
-          <textarea id="result-text" class="result-text" readonly></textarea>
+          <label class="field result-project-field">
+            <span>Projeto</span>
+            <input id="result-project-tag" type="text" list="project-tag-suggestions" placeholder="Sem projeto" />
+          </label>
+          <label class="result-text-label" for="result-text">Transcrição</label>
+          <textarea id="result-text" class="result-text"></textarea>
+          <div class="autosave-row">
+            <p id="autosave-status" class="autosave-status" role="status" aria-live="polite" hidden></p>
+            <button id="autosave-retry-btn" type="button" class="btn btn-ghost" hidden>Tentar novamente</button>
+          </div>
           <div class="actions">
             <button id="copy-btn" type="button" class="btn btn-secondary">Copiar</button>
             <button id="download-btn" type="button" class="btn btn-secondary">Baixar</button>
@@ -118,7 +132,15 @@
         </section>
 
         <section id="history-section" class="card">
-          <h2>Histórico</h2>
+          <div class="section-heading">
+            <h2>Histórico</h2>
+            <label class="field field-inline history-filter">
+              <span>Projeto</span>
+              <select id="history-project-filter">
+                <option value="">Todos os projetos</option>
+              </select>
+            </label>
+          </div>
           <p id="history-empty" class="empty-state" hidden>
             Nenhuma transcrição ainda — envie um áudio acima para começar.
           </p>
@@ -126,6 +148,7 @@
         </section>
       </main>
     </div>
+    <datalist id="project-tag-suggestions"></datalist>
 
     <div id="loading-backdrop" class="backdrop" hidden>
       <div class="modal loading-modal" role="status" aria-live="polite">

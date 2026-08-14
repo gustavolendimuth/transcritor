@@ -28,6 +28,16 @@ describe('transcribeUpload', () => {
     expect(record.withTimestamps).toBe(false);
   });
 
+  it('saves the upload project tag without sending it to OpenAI', async () => {
+    const deps = makeDeps();
+    const options = { ...NO_TIMESTAMPS, projectTag: 'Cliente Acme' };
+
+    const record = await transcribeUpload(deps, '/tmp/audio.ogg', 'audio.ogg', options);
+
+    expect(record.projectTag).toBe('Cliente Acme');
+    expect(deps.transcribeChunk).toHaveBeenCalledWith('/tmp/audio.ogg', NO_TIMESTAMPS);
+  });
+
   it('concatenates chunk texts in order for long files', async () => {
     const transcribeChunk = vi
       .fn()

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, json } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import os from 'node:os';
@@ -16,7 +16,12 @@ export function parseTranscribeOptions(body: Record<string, unknown>): Transcrib
   return {
     withTimestamps: body.withTimestamps === 'true',
     language,
+    projectTag: parseProjectTag(body.projectTag),
   };
+}
+
+function parseProjectTag(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 export interface RouterDeps {
@@ -26,6 +31,7 @@ export interface RouterDeps {
 
 export function createRouter(deps: RouterDeps): Router {
   const router = Router();
+  router.use(json({ limit: '2mb' }));
   const upload = multer({
     storage: multer.diskStorage({
       destination: os.tmpdir(),
@@ -70,13 +76,51 @@ export function createRouter(deps: RouterDeps): Router {
     }
   });
 
-  router.get('/history', (_req, res) => {
-    res.status(200).json(deps.repo.list());
+  router.get('/history', (req, res) => {
+    const projectTag = typeof req.query.projectTag === 'string' && req.query.projectTag.trim()
+      ? req.query.projectTag.trim()
+      : undefined;
+    res.status(200).json(deps.repo.list(projectTag));
+  });
+
+  router.get('/history/tags', (_req, res) => {
+    res.status(200).json(deps.repo.listTags());
   });
 
   router.get('/history/:id', (req, res) => {
     const id = Number(req.params.id);
     const record = deps.repo.get(id);
+    if (!record) {
+      res.status(404).json({ error: 'Transcrição não encontrada' });
+      return;
+    }
+    res.status(200).json(record);
+  });
+
+  router.patch('/history/:id', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const changes: { text?: string; projectTag?: string | null } = {};
+
+    if ('text' in body) {
+      if (typeof body.text !== 'string') {
+        res.status(400).json({ error: 'Texto inválido' });
+        return;
+      }
+      changes.text = body.text;
+    }
+    if ('projectTag' in body) {
+      if (body.projectTag !== null && typeof body.projectTag !== 'string') {
+        res.status(400).json({ error: 'Projeto inválido' });
+        return;
+      }
+      changes.projectTag = parseProjectTag(body.projectTag);
+    }
+    if (Object.keys(changes).length === 0) {
+      res.status(400).json({ error: 'Nenhuma alteração enviada' });
+      return;
+    }
+
+    const record = deps.repo.update(Number(req.params.id), changes);
     if (!record) {
       res.status(404).json({ error: 'Transcrição não encontrada' });
       return;
@@ -91,6 +135,10 @@ export function createRouter(deps: RouterDeps): Router {
   });
 
   router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (typeof err === 'object' && err !== null && 'type' in err && err.type === 'entity.too.large') {
+      res.status(413).json({ error: 'Texto maior que 2MB' });
+      return;
+    }
     if (err instanceof multer.MulterError) {
       const message =
         err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 100MB' : 'Upload inválido';

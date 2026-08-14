@@ -37,6 +37,18 @@ describe('createTranscriptionRepo', () => {
     expect(record.withTimestamps).toBe(true);
   });
 
+  it('persists an optional project tag', () => {
+    const record = repo.insert({
+      filename: 'reuniao.ogg',
+      text: 'decisões da reunião',
+      durationSeconds: 12.5,
+      withTimestamps: false,
+      projectTag: 'Cliente Acme',
+    });
+
+    expect(record.projectTag).toBe('Cliente Acme');
+  });
+
   it('lists transcriptions most recent first', () => {
     repo.insert({ filename: 'first.ogg', text: 'primeiro', durationSeconds: 1, withTimestamps: false });
     repo.insert({ filename: 'second.ogg', text: 'segundo', durationSeconds: 2, withTimestamps: false });
@@ -44,6 +56,49 @@ describe('createTranscriptionRepo', () => {
     expect(list).toHaveLength(2);
     expect(list[0].filename).toBe('second.ogg');
     expect(list[1].filename).toBe('first.ogg');
+  });
+
+  it('filters transcriptions by project tag', () => {
+    repo.insert({
+      filename: 'acme.ogg',
+      text: 'acme',
+      projectTag: 'Acme',
+      durationSeconds: 1,
+      withTimestamps: false,
+    });
+    repo.insert({
+      filename: 'interno.ogg',
+      text: 'interno',
+      projectTag: 'Interno',
+      durationSeconds: 2,
+      withTimestamps: false,
+    });
+
+    expect(repo.list('Acme')).toMatchObject([{ filename: 'acme.ogg', projectTag: 'Acme' }]);
+  });
+
+  it('lists distinct project tags alphabetically', () => {
+    repo.insert({ filename: 'a.ogg', text: 'a', projectTag: 'Zeta', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'b.ogg', text: 'b', projectTag: 'Acme', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'c.ogg', text: 'c', projectTag: 'Acme', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'd.ogg', text: 'd', durationSeconds: 1, withTimestamps: false });
+
+    expect(repo.listTags()).toEqual(['Acme', 'Zeta']);
+  });
+
+  it('updates text and removes a project tag', () => {
+    const inserted = repo.insert({
+      filename: 'audio.ogg',
+      text: 'rascunho',
+      projectTag: 'Acme',
+      durationSeconds: 1,
+      withTimestamps: false,
+    });
+
+    expect(repo.update(inserted.id, { text: 'texto revisado', projectTag: null })).toMatchObject({
+      text: 'texto revisado',
+      projectTag: null,
+    });
   });
 
   it('gets a transcription by id', () => {

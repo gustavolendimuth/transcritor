@@ -18,7 +18,9 @@ export interface TranscribeUploadDeps {
   compressAndSplit: (inputPath: string, outputDir: string) => Promise<string[]>;
 }
 
-export type TranscribeUploadOptions = TranscribeChunkOptions;
+export interface TranscribeUploadOptions extends TranscribeChunkOptions {
+  projectTag?: string | null;
+}
 
 export async function transcribeUpload(
   deps: TranscribeUploadDeps,
@@ -26,6 +28,7 @@ export async function transcribeUpload(
   originalFilename: string,
   options: TranscribeUploadOptions
 ): Promise<TranscriptionRecord> {
+  const { projectTag = null, ...transcribeOptions } = options;
   const info = await deps.getAudioInfo(uploadedFilePath);
   const plan = planProcessing(info);
 
@@ -51,7 +54,7 @@ export async function transcribeUpload(
     for (let i = 0; i < chunkPaths.length; i++) {
       let result: TranscribeChunkResult;
       try {
-        result = await deps.transcribeChunk(chunkPaths[i], options);
+        result = await deps.transcribeChunk(chunkPaths[i], transcribeOptions);
       } catch (error) {
         throw new TranscriptionApiError(
           `Falha ao transcrever o segmento ${i + 1} de ${chunkPaths.length}`,
@@ -83,6 +86,7 @@ export async function transcribeUpload(
     return deps.repo.insert({
       filename: originalFilename,
       text: fullText,
+      projectTag,
       durationSeconds: info.durationSeconds,
       withTimestamps: options.withTimestamps,
     });

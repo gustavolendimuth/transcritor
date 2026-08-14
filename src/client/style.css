@@ -362,6 +362,102 @@ input {
   margin-top: var(--space-3);
 }
 
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.section-heading h2 {
+  margin-bottom: 0;
+}
+
+.history-filter {
+  width: auto;
+}
+
+.history-filter select {
+  max-width: 180px;
+}
+
+.upload-queue {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  border-top: 1px solid var(--ctp-surface1);
+}
+
+.upload-queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--ctp-surface1);
+}
+
+.upload-queue-details {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.upload-queue-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ctp-text);
+  font-size: 0.9375rem;
+}
+
+.upload-queue-status,
+.autosave-status {
+  color: var(--ctp-subtext0);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.upload-queue-item--error .upload-queue-status,
+.autosave-status--error {
+  color: var(--ctp-red);
+}
+
+.upload-queue-item--success .upload-queue-status {
+  color: var(--ctp-green);
+}
+
+.upload-queue-action {
+  flex-shrink: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.result-project-field {
+  margin-bottom: var(--space-2);
+}
+
+.result-text-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: var(--ctp-subtext1);
+  font-size: 0.875rem;
+}
+
+.autosave-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  margin-top: var(--space-1);
+}
+
+.autosave-status {
+  margin: 0;
+}
+
 .empty-state {
   color: var(--ctp-subtext0);
   font-size: 0.9375rem;
@@ -414,6 +510,18 @@ input {
   border-radius: 999px;
   background: rgba(203, 166, 247, 0.16);
   color: var(--ctp-mauve);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.history-project-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  background: rgba(166, 227, 161, 0.14);
+  color: var(--ctp-green);
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -535,6 +643,15 @@ input {
 
   .actions {
     flex-wrap: wrap;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-filter {
+    width: 100%;
   }
 }
 

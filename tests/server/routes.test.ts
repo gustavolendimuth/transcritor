@@ -57,6 +57,26 @@ describe('routes', () => {
     expect(res.body[0].filename).toBe('b.ogg');
   });
 
+  it('GET /api/history filters by project tag', async () => {
+    repo.insert({ filename: 'a.ogg', text: 'a', projectTag: 'Acme', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'b.ogg', text: 'b', projectTag: 'Interno', durationSeconds: 2, withTimestamps: false });
+
+    const res = await request(app).get('/api/history').query({ projectTag: 'Acme' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject([{ filename: 'a.ogg', projectTag: 'Acme' }]);
+  });
+
+  it('GET /api/history/tags returns the saved project tag suggestions', async () => {
+    repo.insert({ filename: 'a.ogg', text: 'a', projectTag: 'Acme', durationSeconds: 1, withTimestamps: false });
+    repo.insert({ filename: 'b.ogg', text: 'b', projectTag: 'Interno', durationSeconds: 2, withTimestamps: false });
+
+    const res = await request(app).get('/api/history/tags');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(['Acme', 'Interno']);
+  });
+
   it('GET /api/history/:id returns 404 for a missing id', async () => {
     const res = await request(app).get('/api/history/999');
     expect(res.status).toBe(404);
@@ -81,6 +101,38 @@ describe('routes', () => {
     expect(res.status).toBe(404);
   });
 
+  it('PATCH /api/history/:id updates text and project tag', async () => {
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+
+    const res = await request(app)
+      .patch(`/api/history/${inserted.id}`)
+      .send({ text: 'texto revisado', projectTag: 'Acme' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ text: 'texto revisado', projectTag: 'Acme' });
+  });
+
+  it('PATCH /api/history/:id accepts a transcription larger than Express default JSON limit', async () => {
+    const inserted = repo.insert({ filename: 'longa.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+    const text = 'a'.repeat(120 * 1024);
+
+    const res = await request(app).patch(`/api/history/${inserted.id}`).send({ text });
+
+    expect(res.status).toBe(200);
+    expect(res.body.text).toBe(text);
+  });
+
+  it('PATCH /api/history/:id returns JSON 413 when the text exceeds the supported limit', async () => {
+    const inserted = repo.insert({ filename: 'grande.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+
+    const res = await request(app)
+      .patch(`/api/history/${inserted.id}`)
+      .send({ text: 'a'.repeat(2 * 1024 * 1024 + 1) });
+
+    expect(res.status).toBe(413);
+    expect(res.body.error).toBe('Texto maior que 2MB');
+  });
+
   it('POST /api/transcribe forwards the parsed withTimestamps/language to transcribeChunk', async () => {
     const transcribeChunk = vi.fn(async () => ({ text: 'ok' }));
     app = express();
@@ -97,6 +149,16 @@ describe('routes', () => {
       withTimestamps: true,
       language: 'es',
     });
+  });
+
+  it('POST /api/transcribe trims and saves the project tag', async () => {
+    const res = await request(app)
+      .post('/api/transcribe')
+      .field('projectTag', '  Cliente Acme  ')
+      .attach('audio', Buffer.from('conteudo'), 'audio.ogg');
+
+    expect(res.status).toBe(200);
+    expect(res.body.projectTag).toBe('Cliente Acme');
   });
 
   it('POST /api/transcribe defaults to withTimestamps=false/language=pt when the fields are omitted', async () => {
@@ -118,13 +180,18 @@ describe('routes', () => {
 
 describe('parseTranscribeOptions', () => {
   it('defaults to withTimestamps=false and language=pt when the body is empty', () => {
-    expect(parseTranscribeOptions({})).toEqual({ withTimestamps: false, language: 'pt' });
+    expect(parseTranscribeOptions({})).toEqual({
+      withTimestamps: false,
+      language: 'pt',
+      projectTag: null,
+    });
   });
 
   it('parses withTimestamps=true and a valid language from string fields', () => {
     expect(parseTranscribeOptions({ withTimestamps: 'true', language: 'en' })).toEqual({
       withTimestamps: true,
       language: 'en',
+      projectTag: null,
     });
   });
 
@@ -132,6 +199,7 @@ describe('parseTranscribeOptions', () => {
     expect(parseTranscribeOptions({ withTimestamps: 'yes' })).toEqual({
       withTimestamps: false,
       language: 'pt',
+      projectTag: null,
     });
   });
 
@@ -139,6 +207,7 @@ describe('parseTranscribeOptions', () => {
     expect(parseTranscribeOptions({ language: 'fr' })).toEqual({
       withTimestamps: false,
       language: 'pt',
+      projectTag: null,
     });
   });
 
@@ -146,6 +215,12 @@ describe('parseTranscribeOptions', () => {
     expect(parseTranscribeOptions({ language: 'es' })).toEqual({
       withTimestamps: false,
       language: 'es',
+      projectTag: null,
     });
+  });
+
+  it('trims a project tag and maps an empty tag to null', () => {
+    expect(parseTranscribeOptions({ projectTag: '  Acme  ' })).toMatchObject({ projectTag: 'Acme' });
+    expect(parseTranscribeOptions({ projectTag: '   ' })).toMatchObject({ projectTag: null });
   });
 });
