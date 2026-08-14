@@ -94,6 +94,33 @@ describe('transcribeUpload', () => {
     expect(record.text).toBe('[00:00:02] Primeira.\n[00:05:01] Segunda.');
   });
 
+  it('waits for each chunk duration before starting the next FFprobe request', async () => {
+    const chunks = ['/tmp/chunk_000.ogg', '/tmp/chunk_001.ogg'];
+    let releaseFirstProbe: (() => void) | undefined;
+    let secondProbeStarted = false;
+    const firstProbe = new Promise<{ durationSeconds: number }>((resolve) => {
+      releaseFirstProbe = () => resolve({ durationSeconds: 300 });
+    });
+    const getMediaInfo = vi.fn((filePath: string) => {
+      if (filePath === chunks[0]) {
+        return firstProbe;
+      }
+      secondProbeStarted = true;
+      return Promise.resolve({ durationSeconds: 200 });
+    });
+    const deps = makeDeps({
+      getMediaInfo,
+      extractAudioAndSplit: vi.fn(async () => chunks),
+    });
+
+    const transcription = transcribeUpload(deps, '/tmp/aula.mp4', 'aula.mp4', NO_TIMESTAMPS);
+
+    await vi.waitFor(() => expect(getMediaInfo).toHaveBeenCalledWith(chunks[0]));
+    expect(secondProbeStarted).toBe(false);
+    releaseFirstProbe?.();
+    await expect(transcription).resolves.toMatchObject({ durationSeconds: 500 });
+  });
+
   it('removes the work directory when FFmpeg extraction fails', async () => {
     let workDir: string | undefined;
     const deps = makeDeps({
@@ -128,14 +155,14 @@ describe('transcribeUpload', () => {
     await expectDirectoryRemoved(workDir);
   });
 
-  it('rejects a normalized chunk with no usable duration', async () => {
+  it('rejects a normalized chunk with a zero duration', async () => {
     let workDir: string | undefined;
     const deps = makeDeps({
       extractAudioAndSplit: vi.fn(async (_input: string, outputDir: string) => {
         workDir = outputDir;
         return [await writeChunk(outputDir, 0)];
       }),
-      getMediaInfo: vi.fn(async () => ({ durationSeconds: Number.NaN })),
+      getMediaInfo: vi.fn(async () => ({ durationSeconds: 0 })),
     });
 
     await expect(

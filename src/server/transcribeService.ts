@@ -38,15 +38,14 @@ export async function transcribeUpload(
       throw new UnsupportedMediaError('Não foi possível extrair áudio do arquivo enviado');
     }
 
-    const chunkDurations = await Promise.all(
-      chunkPaths.map(async (chunkPath) => {
-        const { durationSeconds } = await deps.getMediaInfo(chunkPath);
-        if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
-          throw new UnsupportedMediaError('Não foi possível determinar a duração do áudio extraído');
-        }
-        return durationSeconds;
-      })
-    );
+    const chunkDurations: number[] = [];
+    for (const chunkPath of chunkPaths) {
+      const { durationSeconds } = await deps.getMediaInfo(chunkPath);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        throw new UnsupportedMediaError('Não foi possível determinar a duração do áudio extraído');
+      }
+      chunkDurations.push(durationSeconds);
+    }
     const durationSeconds = chunkDurations.reduce((total, chunkDuration) => total + chunkDuration, 0);
 
     const texts: string[] = [];
