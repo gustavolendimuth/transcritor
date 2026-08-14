@@ -32,12 +32,22 @@ export async function transcribeUpload(
   const workDir = path.join(os.tmpdir(), `transcritor-${randomUUID()}`);
 
   try {
-    const info = await deps.getMediaInfo(uploadedFilePath);
     const chunkPaths = await deps.extractAudioAndSplit(uploadedFilePath, workDir);
 
     if (chunkPaths.length === 0) {
       throw new UnsupportedMediaError('Não foi possível extrair áudio do arquivo enviado');
     }
+
+    const chunkDurations = await Promise.all(
+      chunkPaths.map(async (chunkPath) => {
+        const { durationSeconds } = await deps.getMediaInfo(chunkPath);
+        if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+          throw new UnsupportedMediaError('Não foi possível determinar a duração do áudio extraído');
+        }
+        return durationSeconds;
+      })
+    );
+    const durationSeconds = chunkDurations.reduce((total, chunkDuration) => total + chunkDuration, 0);
 
     const texts: string[] = [];
     const timestampedLines: string[] = [];
@@ -63,8 +73,7 @@ export async function transcribeUpload(
           timestampedLines.push(`[${formatTimestamp(offsetSeconds)}] ${result.text.trim()}`);
         }
         if (i < chunkPaths.length - 1) {
-          const chunkInfo = await deps.getMediaInfo(chunkPaths[i]);
-          offsetSeconds += chunkInfo.durationSeconds;
+          offsetSeconds += chunkDurations[i];
         }
       } else {
         texts.push(result.text);
@@ -79,7 +88,7 @@ export async function transcribeUpload(
       filename: originalFilename,
       text: fullText,
       projectTag,
-      durationSeconds: info.durationSeconds,
+      durationSeconds,
       withTimestamps: options.withTimestamps,
     });
   } finally {

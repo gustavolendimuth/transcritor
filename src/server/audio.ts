@@ -61,6 +61,8 @@ export async function extractAudioAndSplit(inputPath: string, outputDir: string)
       'segment',
       '-segment_time',
       String(CHUNK_DURATION_SECONDS),
+      '-reset_timestamps',
+      '1',
       pattern,
     ]);
   } catch {

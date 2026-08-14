@@ -88,6 +88,8 @@ describe('media tools', () => {
         'segment',
         '-segment_time',
         '300',
+        '-reset_timestamps',
+        '1',
         path.join(outputDir, 'chunk_%03d.ogg'),
       ],
       expect.any(Function)

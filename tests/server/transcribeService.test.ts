@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { transcribeUpload, type TranscribeUploadDeps } from '../../src/server/transcribeService.js';
 import { createTranscriptionRepo } from '../../src/server/db.js';
+import { UnsupportedMediaError } from '../../src/server/audio.js';
 
 const NO_TIMESTAMPS = { withTimestamps: false, language: 'pt' } as const;
 const WITH_TIMESTAMPS = { withTimestamps: true, language: 'pt' } as const;
@@ -30,26 +31,38 @@ async function expectDirectoryRemoved(directory: string | undefined): Promise<vo
 }
 
 describe('transcribeUpload', () => {
-  it('converts even a short uploaded media file before transcribing it and removes the work directory', async () => {
+  it('transcribes chunks from media without an original duration and derives its duration from them', async () => {
     let workDir: string | undefined;
     const extractAudioAndSplit = vi.fn(async (_input: string, outputDir: string) => {
       workDir = outputDir;
       return [await writeChunk(outputDir, 0)];
     });
     const transcribeChunk = vi.fn(async () => ({ text: 'texto normalizado' }));
-    const deps = makeDeps({ extractAudioAndSplit, transcribeChunk });
+    const getMediaInfo = vi.fn(async (filePath: string) => {
+      if (filePath === '/tmp/aula-sem-duracao.mp4') {
+        throw new UnsupportedMediaError('Não foi possível ler o arquivo de mídia');
+      }
+      return { durationSeconds: 300 };
+    });
+    const deps = makeDeps({ extractAudioAndSplit, getMediaInfo, transcribeChunk });
 
-    const record = await transcribeUpload(deps, '/tmp/aula-curta.mp4', 'aula-curta.mp4', NO_TIMESTAMPS);
+    const record = await transcribeUpload(
+      deps,
+      '/tmp/aula-sem-duracao.mp4',
+      'aula-sem-duracao.mp4',
+      NO_TIMESTAMPS
+    );
 
-    expect(extractAudioAndSplit).toHaveBeenCalledWith('/tmp/aula-curta.mp4', expect.any(String));
+    expect(extractAudioAndSplit).toHaveBeenCalledWith('/tmp/aula-sem-duracao.mp4', expect.any(String));
+    expect(getMediaInfo).not.toHaveBeenCalledWith('/tmp/aula-sem-duracao.mp4');
     expect(transcribeChunk).toHaveBeenCalledWith(
       expect.stringMatching(/chunk_000\.ogg$/),
       NO_TIMESTAMPS
     );
     expect(record).toMatchObject({
-      filename: 'aula-curta.mp4',
+      filename: 'aula-sem-duracao.mp4',
       text: 'texto normalizado',
-      durationSeconds: 60,
+      durationSeconds: 300,
     });
     await expectDirectoryRemoved(workDir);
   });
@@ -62,8 +75,8 @@ describe('transcribeUpload', () => {
       .mockResolvedValueOnce({ text: 'segunda', segments: [{ start: 1, text: 'Segunda.' }] });
     const getMediaInfo = vi
       .fn()
-      .mockResolvedValueOnce({ durationSeconds: 700 })
-      .mockResolvedValueOnce({ durationSeconds: 300 });
+      .mockResolvedValueOnce({ durationSeconds: 300 })
+      .mockResolvedValueOnce({ durationSeconds: 200 });
     const deps = makeDeps({
       getMediaInfo,
       extractAudioAndSplit: vi.fn(async () => chunks),
@@ -74,6 +87,10 @@ describe('transcribeUpload', () => {
 
     expect(transcribeChunk).toHaveBeenNthCalledWith(1, chunks[0], WITH_TIMESTAMPS);
     expect(transcribeChunk).toHaveBeenNthCalledWith(2, chunks[1], WITH_TIMESTAMPS);
+    expect(getMediaInfo).toHaveBeenCalledTimes(2);
+    expect(getMediaInfo).toHaveBeenNthCalledWith(1, chunks[0]);
+    expect(getMediaInfo).toHaveBeenNthCalledWith(2, chunks[1]);
+    expect(record.durationSeconds).toBe(500);
     expect(record.text).toBe('[00:00:02] Primeira.\n[00:05:01] Segunda.');
   });
 
@@ -107,6 +124,26 @@ describe('transcribeUpload', () => {
     await expect(
       transcribeUpload(deps, '/tmp/sem-audio.mp4', 'sem-audio.mp4', NO_TIMESTAMPS)
     ).rejects.toThrow('Não foi possível extrair áudio do arquivo enviado');
+
+    await expectDirectoryRemoved(workDir);
+  });
+
+  it('rejects a normalized chunk with no usable duration', async () => {
+    let workDir: string | undefined;
+    const deps = makeDeps({
+      extractAudioAndSplit: vi.fn(async (_input: string, outputDir: string) => {
+        workDir = outputDir;
+        return [await writeChunk(outputDir, 0)];
+      }),
+      getMediaInfo: vi.fn(async () => ({ durationSeconds: Number.NaN })),
+    });
+
+    await expect(
+      transcribeUpload(deps, '/tmp/aula.mp4', 'aula.mp4', NO_TIMESTAMPS)
+    ).rejects.toMatchObject({
+      name: UnsupportedMediaError.name,
+      message: 'Não foi possível determinar a duração do áudio extraído',
+    });
 
     await expectDirectoryRemoved(workDir);
   });
