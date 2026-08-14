@@ -226,7 +226,7 @@ const uploadTaskQueue = createUploadQueue<UploadPayload>(
 
 async function refreshProjectTags() {
   const response = await authFetch('/api/history/tags');
-  if (!response.ok) throw new Error('Não foi possível carregar os projetos');
+  if (!response.ok) throw new Error('Não foi possível carregar as tags');
   projectTags = await response.json() as string[];
   projectTagSuggestions.innerHTML = '';
   for (const tag of projectTags) {
@@ -235,7 +235,7 @@ async function refreshProjectTags() {
     projectTagSuggestions.append(option);
   }
   const selectedTag = historyProjectFilter.value;
-  historyProjectFilter.innerHTML = '<option value="">Todos os projetos</option>';
+  historyProjectFilter.innerHTML = '<option value="">Todas</option>';
   for (const tag of projectTags) {
     const option = document.createElement('option');
     option.value = tag;
@@ -286,7 +286,7 @@ async function loadHistory() {
         try {
           await refreshProjectTags();
         } catch (error) {
-          showAlert(error instanceof Error ? error.message : 'Erro ao atualizar os projetos', 'error');
+          showAlert(error instanceof Error ? error.message : 'Erro ao atualizar as tags', 'error');
         }
         await loadHistory();
       });
@@ -329,7 +329,7 @@ loginForm.addEventListener('submit', async (event) => {
   try {
     await refreshProjectTags();
   } catch (error) {
-    showAlert(error instanceof Error ? error.message : 'Erro ao carregar os projetos', 'error');
+    showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error');
   }
   await loadHistory();
 });
@@ -412,7 +412,7 @@ async function bootstrap() {
       try {
         await refreshProjectTags();
       } catch (error) {
-        showAlert(error instanceof Error ? error.message : 'Erro ao carregar os projetos', 'error');
+        showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error');
       }
       await loadHistory();
       return;

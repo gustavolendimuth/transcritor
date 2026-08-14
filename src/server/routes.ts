@@ -115,7 +115,7 @@ export function createRouter(deps: RouterDeps): Router {
     }
     if ('projectTag' in body) {
       if (body.projectTag !== null && typeof body.projectTag !== 'string') {
-        res.status(400).json({ error: 'Projeto inválido' });
+        res.status(400).json({ error: 'Tag inválida' });
         return;
       }
       changes.projectTag = parseProjectTag(body.projectTag);
