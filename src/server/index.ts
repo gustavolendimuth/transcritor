@@ -16,7 +16,7 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const PORT = Number(process.env.PORT ?? 3011);
+const API_PORT = Number(process.env.API_PORT ?? 3011);
 const OPENAI_API_KEY = requireEnv('OPENAI_API_KEY');
 const AUTH_USER = requireEnv('AUTH_USER');
 const AUTH_PASSWORD = requireEnv('AUTH_PASSWORD');
@@ -42,6 +42,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Transcritor rodando na porta ${PORT}`);
+app.listen(API_PORT, () => {
+  console.log(`Transcritor rodando na porta ${API_PORT}`);
 });

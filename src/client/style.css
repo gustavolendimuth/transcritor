@@ -15,6 +15,20 @@
   --ctp-green: #a6e3a1;
   --ctp-red: #f38ba8;
   --ctp-yellow: #f9e2af;
+  --ctp-peach: #fab387;
+  --ctp-teal: #94e2d5;
+  --ctp-sky: #89dceb;
+  --ctp-blue: #89b4fa;
+  --ctp-pink: #f5c2e7;
+
+  --tag-color-0: var(--ctp-peach);
+  --tag-color-1: var(--ctp-yellow);
+  --tag-color-2: var(--ctp-green);
+  --tag-color-3: var(--ctp-teal);
+  --tag-color-4: var(--ctp-sky);
+  --tag-color-5: var(--ctp-blue);
+  --tag-color-6: var(--ctp-pink);
+  --tag-color-7: var(--ctp-red);
 
   --font-display: 'Fraunces', ui-serif, serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
@@ -374,12 +388,57 @@ input {
   margin-bottom: 0;
 }
 
-.history-filter {
-  width: auto;
+.tag-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.history-filter select {
-  max-width: 180px;
+.tag-filter-label {
+  color: var(--ctp-subtext0);
+  font-size: 0.8125rem;
+}
+
+.tag-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tag-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ctp-subtext1);
+  padding: 0.3125rem 0.625rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.tag-filter-chip:hover {
+  border-color: var(--ctp-surface2);
+  color: var(--ctp-text);
+}
+
+.tag-filter-chip.is-active {
+  background: color-mix(in srgb, var(--tag-color, var(--ctp-mauve)) 18%, var(--ctp-surface0));
+  border-color: var(--tag-color, var(--ctp-mauve));
+  color: var(--tag-color, var(--ctp-mauve));
+}
+
+.tag-filter-chip:focus-visible {
+  outline: 2px solid var(--ctp-mauve);
+  outline-offset: 2px;
 }
 
 .upload-queue {
@@ -519,13 +578,19 @@ input {
 .history-project-badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.3125rem;
   padding: 0.0625rem 0.4375rem;
   border-radius: 999px;
-  background: rgba(166, 227, 161, 0.14);
-  color: var(--ctp-green);
+  background: color-mix(in srgb, var(--tag-color, var(--ctp-green)) 16%, transparent);
+  color: var(--tag-color, var(--ctp-green));
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+.history-project-badge .tag-dot {
+  width: 6px;
+  height: 6px;
 }
 
 .history-meta {
@@ -651,7 +716,11 @@ input {
     flex-direction: column;
   }
 
-  .history-filter {
+  .tag-filter {
+    width: 100%;
+  }
+
+  .tag-filter-row {
     width: 100%;
   }
 }
@@ -718,4 +787,93 @@ input {
 .field-inline select:focus-visible {
   outline: 2px solid var(--ctp-mauve);
   outline-offset: 1px;
+}
+
+.tag-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tag-color, var(--ctp-overlay0));
+  flex-shrink: 0;
+}
+
+.tag-combobox {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--ctp-mantle);
+  border: 1px solid var(--ctp-surface1);
+  border-radius: var(--radius-sm);
+  padding: 0 0.75rem;
+  transition: border-color 0.15s ease;
+}
+
+.tag-combobox:focus-within {
+  border-color: var(--ctp-mauve);
+}
+
+.tag-combobox .tag-combobox-dot {
+  width: 9px;
+  height: 9px;
+}
+
+.tag-combobox .tag-combobox-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0.625rem 0;
+  font-size: 0.9375rem;
+}
+
+.tag-combobox .tag-combobox-input:focus-visible {
+  outline: none;
+}
+
+.tag-combobox .tag-combobox-input::placeholder {
+  color: var(--ctp-overlay0);
+}
+
+.tag-combobox-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--ctp-surface0);
+  border: 1px solid var(--ctp-surface1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-modal);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tag-combobox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  color: var(--ctp-text);
+  cursor: pointer;
+}
+
+.tag-combobox-option:hover,
+.tag-combobox-option.is-active {
+  background: var(--ctp-surface1);
+}
+
+.tag-combobox-option-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

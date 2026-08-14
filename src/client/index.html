@@ -104,7 +104,21 @@
             </label>
             <label class="field">
               <span>Tag</span>
-              <input id="upload-project-tag" type="text" list="project-tag-suggestions" placeholder="Ex.: Cliente Acme" />
+              <div class="tag-combobox">
+                <span id="upload-project-tag-dot" class="tag-dot tag-combobox-dot" aria-hidden="true"></span>
+                <input
+                  id="upload-project-tag"
+                  type="text"
+                  class="tag-combobox-input"
+                  placeholder="Ex.: Cliente Acme"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-expanded="false"
+                  aria-autocomplete="list"
+                  aria-controls="upload-project-tag-listbox"
+                />
+                <ul id="upload-project-tag-listbox" class="tag-combobox-popover" role="listbox" hidden></ul>
+              </div>
             </label>
           </div>
           <button id="transcribe-btn" type="button" class="btn btn-primary" disabled>
@@ -124,7 +138,21 @@
           </label>
           <label class="field result-project-field">
             <span>Tag</span>
-            <input id="result-project-tag" type="text" list="project-tag-suggestions" placeholder="Sem tag" />
+            <div class="tag-combobox">
+              <span id="result-project-tag-dot" class="tag-dot tag-combobox-dot" aria-hidden="true"></span>
+              <input
+                id="result-project-tag"
+                type="text"
+                class="tag-combobox-input"
+                placeholder="Sem tag"
+                autocomplete="off"
+                role="combobox"
+                aria-expanded="false"
+                aria-autocomplete="list"
+                aria-controls="result-project-tag-listbox"
+              />
+              <ul id="result-project-tag-listbox" class="tag-combobox-popover" role="listbox" hidden></ul>
+            </div>
           </label>
           <label class="result-text-label" for="result-text">Transcrição</label>
           <textarea id="result-text" class="result-text"></textarea>
@@ -141,12 +169,10 @@
         <section id="history-section" class="card">
           <div class="section-heading">
             <h2>Histórico</h2>
-            <label class="field field-inline history-filter">
-              <span>Tag</span>
-              <select id="history-project-filter">
-                <option value="">Todas as tags</option>
-              </select>
-            </label>
+            <div class="tag-filter">
+              <span class="tag-filter-label">Tag</span>
+              <div id="history-project-filter" class="tag-filter-row" role="group" aria-label="Filtrar por tag"></div>
+            </div>
           </div>
           <p id="history-empty" class="empty-state" hidden>
             Nenhuma transcrição ainda — envie um áudio acima para começar.
@@ -155,7 +181,6 @@
         </section>
       </main>
     </div>
-    <datalist id="project-tag-suggestions"></datalist>
 
     <div id="loading-backdrop" class="backdrop" hidden>
       <div class="modal loading-modal" role="status" aria-live="polite">

@@ -1,6 +1,8 @@
 import { attemptLogin, authFetch, clearCredentials, getCredentials } from './auth.js';
 import { createAutosave, type AutosaveStatus } from './autosave.js';
 import { createUploadQueue, type QueueTask } from './uploadQueue.js';
+import { createTagCombobox } from './tagCombobox.js';
+import { tagColorVar } from './tagColor.js';
 import { LANGUAGES, LANGUAGE_LABELS } from '../shared/languages.js';
 
 interface TranscriptionRecord {
@@ -47,6 +49,8 @@ const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const dropzoneFilename = document.getElementById('dropzone-filename') as HTMLSpanElement;
 const transcribeBtn = document.getElementById('transcribe-btn') as HTMLButtonElement;
 const uploadProjectTag = document.getElementById('upload-project-tag') as HTMLInputElement;
+const uploadProjectTagDot = document.getElementById('upload-project-tag-dot') as HTMLElement;
+const uploadProjectTagListbox = document.getElementById('upload-project-tag-listbox') as HTMLUListElement;
 const uploadQueue = document.getElementById('upload-queue') as HTMLUListElement;
 const alertBackdrop = document.getElementById('alert-backdrop') as HTMLDivElement;
 const alertMessage = document.getElementById('alert-message') as HTMLParagraphElement;
@@ -55,14 +59,15 @@ const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
 const resultFilename = document.getElementById('result-filename') as HTMLInputElement;
 const resultProjectTag = document.getElementById('result-project-tag') as HTMLInputElement;
+const resultProjectTagDot = document.getElementById('result-project-tag-dot') as HTMLElement;
+const resultProjectTagListbox = document.getElementById('result-project-tag-listbox') as HTMLUListElement;
 const autosaveStatus = document.getElementById('autosave-status') as HTMLParagraphElement;
 const autosaveRetryBtn = document.getElementById('autosave-retry-btn') as HTMLButtonElement;
 const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const historyList = document.getElementById('history-list') as HTMLUListElement;
 const historyEmpty = document.getElementById('history-empty') as HTMLParagraphElement;
-const historyProjectFilter = document.getElementById('history-project-filter') as HTMLSelectElement;
-const projectTagSuggestions = document.getElementById('project-tag-suggestions') as HTMLDataListElement;
+const historyProjectFilter = document.getElementById('history-project-filter') as HTMLDivElement;
 const timestampsCheckbox = document.getElementById('timestamps-checkbox') as HTMLInputElement;
 const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
 
@@ -77,9 +82,23 @@ for (const lang of LANGUAGES) {
 let selectedFiles: File[] = [];
 let activeRecordId: number | null = null;
 let projectTags: string[] = [];
+let activeTagFilter = '';
 let historyLoadVersion = 0;
 const editors = new Map<number, RecordEditor>();
 const queueTasks: QueueTask<UploadPayload>[] = [];
+
+const uploadTagCombobox = createTagCombobox(
+  uploadProjectTag,
+  uploadProjectTagDot,
+  uploadProjectTagListbox,
+  () => projectTags
+);
+const resultTagCombobox = createTagCombobox(
+  resultProjectTag,
+  resultProjectTagDot,
+  resultProjectTagListbox,
+  () => projectTags
+);
 
 function normalizeProjectTag(value: string): string | null {
   const trimmed = value.trim();
@@ -159,6 +178,7 @@ function showResult(record: TranscriptionRecord) {
   resultFilename.value = editor.draft.filename;
   resultText.value = editor.draft.text;
   resultProjectTag.value = editor.draft.projectTag ?? '';
+  resultTagCombobox.refreshOptions();
   resultSection.hidden = false;
   setAutosaveStatus(editor.status);
 }
@@ -228,27 +248,54 @@ async function refreshProjectTags() {
   const response = await authFetch('/api/history/tags');
   if (!response.ok) throw new Error('Não foi possível carregar as tags');
   projectTags = await response.json() as string[];
-  projectTagSuggestions.innerHTML = '';
+  uploadTagCombobox.refreshOptions();
+  resultTagCombobox.refreshOptions();
+  if (activeTagFilter && !projectTags.includes(activeTagFilter)) activeTagFilter = '';
+  renderTagFilter();
+}
+
+function setTagFilter(tag: string) {
+  if (activeTagFilter === tag) return;
+  activeTagFilter = tag;
+  renderTagFilter();
+  void loadHistory();
+}
+
+function renderTagFilter() {
+  historyProjectFilter.innerHTML = '';
+
+  const allChip = document.createElement('button');
+  allChip.type = 'button';
+  allChip.className = 'tag-filter-chip';
+  allChip.textContent = 'Todas';
+  allChip.setAttribute('aria-pressed', String(activeTagFilter === ''));
+  allChip.classList.toggle('is-active', activeTagFilter === '');
+  allChip.addEventListener('click', () => setTagFilter(''));
+  historyProjectFilter.append(allChip);
+
   for (const tag of projectTags) {
-    const option = document.createElement('option');
-    option.value = tag;
-    projectTagSuggestions.append(option);
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-filter-chip';
+    chip.style.setProperty('--tag-color', tagColorVar(tag));
+    chip.setAttribute('aria-pressed', String(activeTagFilter === tag));
+    chip.classList.toggle('is-active', activeTagFilter === tag);
+
+    const dot = document.createElement('span');
+    dot.className = 'tag-dot';
+    const label = document.createElement('span');
+    label.textContent = tag;
+    chip.append(dot, label);
+
+    chip.addEventListener('click', () => setTagFilter(tag));
+    historyProjectFilter.append(chip);
   }
-  const selectedTag = historyProjectFilter.value;
-  historyProjectFilter.innerHTML = '<option value="">Todas</option>';
-  for (const tag of projectTags) {
-    const option = document.createElement('option');
-    option.value = tag;
-    option.textContent = tag;
-    historyProjectFilter.append(option);
-  }
-  historyProjectFilter.value = projectTags.includes(selectedTag) ? selectedTag : '';
 }
 
 async function loadHistory() {
   const loadVersion = ++historyLoadVersion;
   try {
-    const tag = historyProjectFilter.value;
+    const tag = activeTagFilter;
     const url = tag ? `/api/history?${new URLSearchParams({ projectTag: tag })}` : '/api/history';
     const response = await authFetch(url);
     if (!response.ok) throw new Error('Não foi possível carregar o histórico');
@@ -263,7 +310,9 @@ async function loadHistory() {
       info.type = 'button';
       info.className = 'history-info';
       const timestampBadge = record.withTimestamps ? '<span class="history-badge">Com tempo</span>' : '';
-      const projectBadge = record.projectTag ? `<span class="history-project-badge">${escapeHtml(record.projectTag)}</span>` : '';
+      const projectBadge = record.projectTag
+        ? `<span class="history-project-badge" style="--tag-color:${tagColorVar(record.projectTag)}"><span class="tag-dot" aria-hidden="true"></span>${escapeHtml(record.projectTag)}</span>`
+        : '';
       info.innerHTML = `<span class="history-filename">${escapeHtml(record.filename)}${projectBadge}${timestampBadge}</span><span class="history-meta">${formatDuration(record.durationSeconds)} · ${new Date(record.createdAt).toLocaleString('pt-BR')}</span>`;
       info.addEventListener('click', () => showResult(record));
 
@@ -360,7 +409,6 @@ transcribeBtn.addEventListener('click', () => {
   setSelectedFiles([]);
 });
 
-historyProjectFilter.addEventListener('change', () => { void loadHistory(); });
 resultText.addEventListener('input', () => {
   if (activeRecordId === null) return;
   const editor = editors.get(activeRecordId);
