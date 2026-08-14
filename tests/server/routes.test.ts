@@ -45,15 +45,23 @@ describe('routes', () => {
     expect(res.body.error).toBe('Nenhum arquivo de mídia enviado');
   });
 
-  it('POST /api/transcribe returns a 400 media-format message for unsupported media', async () => {
-    vi.mocked(getMediaInfo).mockRejectedValueOnce(new UnsupportedMediaError('ffprobe falhou'));
+  it('POST /api/transcribe returns a 400 media-format message without logging diagnostics for unsupported media', async () => {
+    vi.mocked(getMediaInfo).mockRejectedValueOnce(
+      new UnsupportedMediaError('ffprobe falhou', new Error('/tmp/upload-diagnostico-privado.mp4'))
+    );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    const res = await request(app)
-      .post('/api/transcribe')
-      .attach('audio', Buffer.from('conteudo'), 'video.mp4');
+    try {
+      const res = await request(app)
+        .post('/api/transcribe')
+        .attach('audio', Buffer.from('conteudo'), 'video.mp4');
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Formato de mídia não suportado' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Formato de mídia não suportado' });
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it('POST /api/transcribe with the wrong field name returns 400 JSON, not an HTML stack trace', async () => {

@@ -45,14 +45,17 @@ describe('media tools', () => {
     );
   });
 
-  it('reports an unsupported media file when FFprobe cannot read it', async () => {
+  it('reports an unsupported media file without exposing its path when FFprobe cannot read it', async () => {
     mockedExecFile.mockImplementation((...args) => {
       const callback = args.at(-1) as (error: Error) => void;
       callback(new Error('Invalid data found when processing input'));
       return undefined as never;
     });
 
-    await expect(getMediaInfo('/tmp/corrompido.mp4')).rejects.toBeInstanceOf(UnsupportedMediaError);
+    await expect(getMediaInfo('/tmp/corrompido.mp4')).rejects.toMatchObject({
+      name: UnsupportedMediaError.name,
+      message: 'Não foi possível ler o arquivo de mídia',
+    });
   });
 
   it('extracts the first audio stream into sorted five-minute Opus chunks', async () => {
@@ -90,15 +93,16 @@ describe('media tools', () => {
     );
   });
 
-  it('reports an unsupported media file when FFmpeg cannot extract audio', async () => {
+  it('reports an unsupported media file without exposing its path when FFmpeg cannot extract audio', async () => {
     mockedExecFile.mockImplementation((...args) => {
       const callback = args.at(-1) as (error: Error) => void;
       callback(new Error('Stream map 0:a:0 matches no streams'));
       return undefined as never;
     });
 
-    await expect(extractAudioAndSplit('/tmp/sem-audio.mp4', outputDir)).rejects.toBeInstanceOf(
-      UnsupportedMediaError
-    );
+    await expect(extractAudioAndSplit('/tmp/sem-audio.mp4', outputDir)).rejects.toMatchObject({
+      name: UnsupportedMediaError.name,
+      message: 'Falha ao extrair áudio da mídia',
+    });
   });
 });

@@ -36,7 +36,7 @@ export async function getMediaInfo(filePath: string): Promise<MediaInfo> {
     }
     return { durationSeconds };
   } catch (error) {
-    throw new UnsupportedMediaError(`Não foi possível ler o arquivo de mídia: ${filePath}`, error);
+    throw new UnsupportedMediaError('Não foi possível ler o arquivo de mídia', error);
   }
 }
 
@@ -64,7 +64,7 @@ export async function extractAudioAndSplit(inputPath: string, outputDir: string)
       pattern,
     ]);
   } catch (error) {
-    throw new UnsupportedMediaError(`Falha ao extrair áudio da mídia: ${inputPath}`, error);
+    throw new UnsupportedMediaError('Falha ao extrair áudio da mídia', error);
   }
   const files = await fs.readdir(outputDir);
   return files

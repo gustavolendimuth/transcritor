@@ -63,7 +63,6 @@ export function createRouter(deps: RouterDeps): Router {
       res.status(200).json(record);
     } catch (error) {
       if (error instanceof UnsupportedMediaError) {
-        console.error(error.message, error.cause);
         res.status(400).json({ error: 'Formato de mídia não suportado' });
       } else if (error instanceof TranscriptionApiError) {
         res.status(502).json({ error: error.message });
@@ -139,9 +138,7 @@ export function createRouter(deps: RouterDeps): Router {
       return;
     }
     if (err instanceof multer.MulterError) {
-      const message =
-        err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 100MB' : 'Upload inválido';
-      res.status(400).json({ error: message });
+      res.status(400).json({ error: 'Upload inválido' });
       return;
     }
     console.error(err);
