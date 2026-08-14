@@ -19,6 +19,16 @@ armazenamento temporário.
 
 Frontend em http://localhost:5173 (proxy para a API em :3011).
 
+## Desenvolvimento com Docker
+
+    cp .env.example .env
+    # preencher OPENAI_API_KEY, AUTH_USER e AUTH_PASSWORD em .env
+    docker compose up --build
+
+Abra http://localhost:5173. O frontend e a API recarregam ao alterar arquivos
+em `src/`; o SQLite fica em `./data`. Para recriar dependências do container,
+execute `docker compose down -v` e depois `docker compose up --build`.
+
 ## Build e execução em produção
 
     npm run build
