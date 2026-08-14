@@ -174,25 +174,69 @@ git add vite.config.ts README.md
 git commit -m "docs: explain Docker development workflow"
 ```
 
-### Task 3: Verificação de execução e persistência
+### Task 3: Corrigir o watcher da API e verificar execução e persistência
 
 **Files:**
+- Modify: `package.json:6`
 - Modify: `README.md` somente se os comandos reais ou URLs divergirem do
   documentado.
 
 **Interfaces:**
 - Consumes: configuração de Docker da Task 1 e listener Vite da Task 2.
-- Produces: evidência de que os processos iniciam, portas respondem, o watcher
+- Produces: `npm run dev:server` inicia `tsx watch` com o arquivo correto e
+  evidência de que os processos Docker iniciam, portas respondem, o watcher
   observa mudanças e `./data` não é apagado na recriação do serviço.
 
-- [ ] **Step 1: Construir e iniciar o ambiente**
+- [ ] **Step 1: Reproduzir a falha do watcher antes da correção**
+
+Executar o script real com variáveis mínimas e um banco temporário. A quebra
+que este teste de integração deve capturar é qualquer alteração que faça o
+`tsx` interpretar `watch` como arquivo em vez de executar o subcomando de
+observação.
+
+```bash
+task_db_dir=$(mktemp -d)
+DB_PATH="$task_db_dir/transcricoes.db" OPENAI_API_KEY=unused AUTH_USER=docker-dev AUTH_PASSWORD=docker-dev \
+  timeout 5s npm run dev:server
+command_status=$?
+rm -rf "$task_db_dir"
+test "$command_status" -eq 1
+```
+
+Expected: saída com `ERR_MODULE_NOT_FOUND` para um caminho que termina em
+`/watch`, e `command_status` igual a 1.
+
+- [ ] **Step 2: Corrigir a ordem do subcomando `tsx watch`**
+
+Em `package.json`, mover `watch` para imediatamente após `tsx`, preservando o
+carregamento opcional de `.env` e o arquivo de entrada.
+
+```json
+"dev:server": "tsx watch --env-file-if-exists=.env src/server/index.ts"
+```
+
+- [ ] **Step 3: Confirmar que o watcher inicia após a correção**
+
+Repetir o comando da Step 1 e exigir `command_status` igual a 124, pois o
+`timeout` encerra o processo saudável após cinco segundos. A saída deve
+conter `Transcritor rodando na porta 3011` e não pode conter
+`ERR_MODULE_NOT_FOUND`.
+
+- [ ] **Step 4: Fazer commit da correção do watcher**
+
+```bash
+git add package.json
+git commit -m "fix: correct development server watcher"
+```
+
+- [ ] **Step 5: Construir e iniciar o ambiente**
 
 Run: `docker compose up --build -d`
 
 Expected: o serviço `app` permanece em execução e os logs mostram o Vite em
 `0.0.0.0:5173` e a API na porta 3011.
 
-- [ ] **Step 2: Verificar frontend e API**
+- [ ] **Step 6: Verificar frontend e API**
 
 Run: `curl --fail http://localhost:5173/ && curl --fail -u "$AUTH_USER:$AUTH_PASSWORD" http://localhost:3011/api/history`
 
@@ -200,7 +244,7 @@ Expected: ambos os comandos retornam HTTP 2xx. A verificação da API usa
 `GET /api/history`, rota autenticada já definida em `src/server/routes.ts`;
 ela retorna uma lista vazia quando o banco ainda não tem transcrições.
 
-- [ ] **Step 3: Verificar hot reload e persistência**
+- [ ] **Step 7: Verificar hot reload e persistência**
 
 Criar temporariamente `data/.docker-dev-persistence-check`, executar
 `docker compose restart app`, e confirmar que o arquivo permanece. Alterar
@@ -218,7 +262,7 @@ git diff -- src/client/style.css src/server/index.ts
 Expected: logs evidenciam ambos os watchers, o diff dos arquivos fonte fica
 vazio e não resta arquivo temporário em `data`.
 
-- [ ] **Step 4: Encerrar o serviço e registrar quaisquer correções**
+- [ ] **Step 8: Encerrar o serviço e registrar quaisquer correções**
 
 Run: `docker compose down`
 

@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file: .env
+    environment:
+      DB_PATH: ./data/transcricoes.db
+    ports:
+      - "5173:5173"
+      - "3011:3011"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - node_modules:/app/node_modules
+
+volumes:
+  node_modules:

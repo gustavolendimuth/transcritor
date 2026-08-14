@@ -1,0 +1,12 @@
+FROM node:22-bookworm
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+CMD ["sh", "-c", "test -f node_modules/.package-lock.json || npm ci && npm run dev"]
