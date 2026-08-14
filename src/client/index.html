@@ -76,13 +76,18 @@
             >
               <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            <span class="dropzone-prompt">Arraste áudios aqui ou clique para escolher</span>
+            <span class="dropzone-prompt">Arraste áudios ou vídeos aqui ou clique para escolher</span>
             <span class="dropzone-file">
               <span id="dropzone-filename" class="dropzone-filename"></span>
               <small>Clique para trocar o arquivo</small>
             </span>
-            <input id="file-input" type="file" accept="audio/*" multiple hidden />
+            <input id="file-input" type="file" accept="audio/*,video/*" multiple hidden />
           </label>
+          <p>
+            Em vídeos, somente o áudio é extraído. A compatibilidade depende do FFmpeg; a mídia
+            enviada é excluída após o processamento. A hospedagem pode impor limites de tamanho
+            ou tempo para o upload.
+          </p>
           <div class="upload-options">
             <label class="checkbox-field">
               <input id="timestamps-checkbox" type="checkbox" />

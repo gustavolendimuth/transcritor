@@ -1,9 +1,14 @@
 # Transcritor
 
-Ferramenta pessoal para transcrever áudios via API da OpenAI (`whisper-1`
-com tempo nas falas, ou `gpt-4o-transcribe` sem),
-com histórico salvo em SQLite. Sem contas de usuário — protegida por HTTP
-Basic Auth.
+Ferramenta pessoal para transcrever áudios e vídeos via API da OpenAI
+(`whisper-1` com tempo nas falas, ou `gpt-4o-transcribe` sem), com histórico
+salvo em SQLite. Em vídeos, somente o áudio é extraído; a compatibilidade dos
+formatos depende do FFmpeg. A mídia enviada é excluída após o processamento,
+sem retenção própria. Sem contas de usuário — protegida por HTTP Basic Auth.
+
+O aplicativo não impõe um limite próprio de tamanho ou duração dos arquivos,
+mas a hospedagem pode impor limites de upload, tempo de processamento ou
+armazenamento temporário.
 
 ## Desenvolvimento local
 
