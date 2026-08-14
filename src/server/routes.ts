@@ -97,8 +97,15 @@ export function createRouter(deps: RouterDeps): Router {
 
   router.patch('/history/:id', (req, res) => {
     const body = req.body as Record<string, unknown>;
-    const changes: { text?: string; projectTag?: string | null } = {};
+    const changes: { filename?: string; text?: string; projectTag?: string | null } = {};
 
+    if ('filename' in body) {
+      if (typeof body.filename !== 'string' || !body.filename.trim()) {
+        res.status(400).json({ error: 'Nome inválido' });
+        return;
+      }
+      changes.filename = body.filename.trim();
+    }
     if ('text' in body) {
       if (typeof body.text !== 'string') {
         res.status(400).json({ error: 'Texto inválido' });

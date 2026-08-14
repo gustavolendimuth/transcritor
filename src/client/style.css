@@ -435,6 +435,7 @@ input {
   font-size: 0.8125rem;
 }
 
+.result-filename-field,
 .result-project-field {
   margin-bottom: var(--space-2);
 }

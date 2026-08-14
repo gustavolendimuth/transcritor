@@ -101,6 +101,20 @@ describe('createTranscriptionRepo', () => {
     });
   });
 
+  it('persists an updated filename', () => {
+    const inserted = repo.insert({
+      filename: 'audio.ogg',
+      text: 'rascunho',
+      durationSeconds: 1,
+      withTimestamps: false,
+    });
+
+    expect(repo.update(inserted.id, { filename: 'reunião-cliente.ogg' })).toMatchObject({
+      filename: 'reunião-cliente.ogg',
+    });
+    expect(repo.get(inserted.id)).toMatchObject({ filename: 'reunião-cliente.ogg' });
+  });
+
   it('gets a transcription by id', () => {
     const inserted = repo.insert({
       filename: 'audio.ogg',

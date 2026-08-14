@@ -145,6 +145,36 @@ describe('routes', () => {
     expect(res.body).toMatchObject({ text: 'texto revisado', projectTag: 'Acme' });
   });
 
+  it('PATCH /api/history/:id trims and persists a filename', async () => {
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+
+    const res = await request(app)
+      .patch(`/api/history/${inserted.id}`)
+      .send({ filename: '  reunião-cliente.ogg  ' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.filename).toBe('reunião-cliente.ogg');
+    expect(repo.get(inserted.id)).toMatchObject({ filename: 'reunião-cliente.ogg' });
+  });
+
+  it('PATCH /api/history/:id rejects a non-string filename', async () => {
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+
+    const res = await request(app).patch(`/api/history/${inserted.id}`).send({ filename: 123 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Nome inválido');
+  });
+
+  it('PATCH /api/history/:id rejects a blank filename', async () => {
+    const inserted = repo.insert({ filename: 'a.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
+
+    const res = await request(app).patch(`/api/history/${inserted.id}`).send({ filename: '   ' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Nome inválido');
+  });
+
   it('PATCH /api/history/:id accepts a transcription larger than Express default JSON limit', async () => {
     const inserted = repo.insert({ filename: 'longa.ogg', text: 'rascunho', durationSeconds: 1, withTimestamps: false });
     const text = 'a'.repeat(120 * 1024);

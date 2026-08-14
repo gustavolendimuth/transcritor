@@ -14,6 +14,7 @@ interface TranscriptionRecord {
 }
 
 interface TranscriptionChanges {
+  filename: string;
   text: string;
   projectTag: string | null;
 }
@@ -52,6 +53,7 @@ const alertMessage = document.getElementById('alert-message') as HTMLParagraphEl
 const alertOkBtn = document.getElementById('alert-ok-btn') as HTMLButtonElement;
 const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
+const resultFilename = document.getElementById('result-filename') as HTMLInputElement;
 const resultProjectTag = document.getElementById('result-project-tag') as HTMLInputElement;
 const autosaveStatus = document.getElementById('autosave-status') as HTMLParagraphElement;
 const autosaveRetryBtn = document.getElementById('autosave-retry-btn') as HTMLButtonElement;
@@ -73,7 +75,6 @@ for (const lang of LANGUAGES) {
 }
 
 let selectedFiles: File[] = [];
-let currentFilename = 'transcricao.txt';
 let activeRecordId: number | null = null;
 let projectTags: string[] = [];
 let historyLoadVersion = 0;
@@ -144,7 +145,7 @@ function getEditor(record: TranscriptionRecord): RecordEditor {
   });
 
   editor = {
-    draft: { text: record.text, projectTag: record.projectTag },
+    draft: { filename: record.filename, text: record.text, projectTag: record.projectTag },
     autosave,
     status: 'saved',
   };
@@ -155,9 +156,9 @@ function getEditor(record: TranscriptionRecord): RecordEditor {
 function showResult(record: TranscriptionRecord) {
   const editor = getEditor(record);
   activeRecordId = record.id;
+  resultFilename.value = editor.draft.filename;
   resultText.value = editor.draft.text;
   resultProjectTag.value = editor.draft.projectTag ?? '';
-  currentFilename = record.filename.replace(/\.[^.]+$/, '') + '.txt';
   resultSection.hidden = false;
   setAutosaveStatus(editor.status);
 }
@@ -368,6 +369,14 @@ resultText.addEventListener('input', () => {
   editor.autosave.schedule({ ...editor.draft });
   setAutosaveStatus('saving');
 });
+resultFilename.addEventListener('input', () => {
+  if (activeRecordId === null) return;
+  const editor = editors.get(activeRecordId);
+  if (!editor) return;
+  editor.draft.filename = resultFilename.value.trim();
+  editor.autosave.schedule({ ...editor.draft });
+  setAutosaveStatus('saving');
+});
 resultProjectTag.addEventListener('input', () => {
   if (activeRecordId === null) return;
   const editor = editors.get(activeRecordId);
@@ -388,7 +397,9 @@ downloadBtn.addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = currentFilename;
+  const editor = activeRecordId === null ? undefined : editors.get(activeRecordId);
+  const filename = editor?.draft.filename || 'transcricao';
+  a.download = filename.replace(/\.[^.]+$/, '') + '.txt';
   a.click();
   URL.revokeObjectURL(url);
 });

@@ -23,7 +23,7 @@ export interface TranscriptionRepo {
   list(projectTag?: string): TranscriptionRecord[];
   listTags(): string[];
   get(id: number): TranscriptionRecord | undefined;
-  update(id: number, changes: { text?: string; projectTag?: string | null }): TranscriptionRecord | undefined;
+  update(id: number, changes: { filename?: string; text?: string; projectTag?: string | null }): TranscriptionRecord | undefined;
   remove(id: number): boolean;
   close(): void;
 }
@@ -124,6 +124,10 @@ export function createTranscriptionRepo(dbPath: string): TranscriptionRepo {
     update(id, changes) {
       const columns: string[] = [];
       const values: (string | null)[] = [];
+      if (changes.filename !== undefined) {
+        columns.push('filename = ?');
+        values.push(changes.filename);
+      }
       if (changes.text !== undefined) {
         columns.push('text = ?');
         values.push(changes.text);
