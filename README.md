@@ -17,7 +17,13 @@ armazenamento temporário.
     npm install
     npm run dev
 
-Frontend em http://localhost:5173 (proxy para a API em :3011).
+Frontend em http://localhost:5173 (proxy para a API local em :3011). A porta
+da API local é configurada por `API_PORT`; `VITE_PORT` configura a porta do
+frontend.
+
+Para usar outra porta no frontend durante o desenvolvimento local:
+
+    VITE_PORT=5174 npm run dev
 
 ## Desenvolvimento com Docker
 
@@ -26,8 +32,13 @@ Frontend em http://localhost:5173 (proxy para a API em :3011).
     docker compose up --build
 
 Abra http://localhost:5173. O frontend e a API recarregam ao alterar arquivos
-em `src/`; o SQLite fica em `./data`. Para recriar dependências do container,
-execute `docker compose down -v` e depois `docker compose up --build`.
+em `src/`; o SQLite fica em `./data`. Para publicar o frontend em outra porta,
+use, por exemplo:
+
+    VITE_PORT=5174 docker compose up --build
+
+O Compose mantém a API publicada em `3011:3011`. Para recriar dependências do
+container, execute `docker compose down -v` e depois `docker compose up --build`.
 
 ## Build e execução em produção
 
@@ -39,7 +50,11 @@ execute `docker compose down -v` e depois `docker compose up --build`.
 - `OPENAI_API_KEY` — chave da API da OpenAI.
 - `AUTH_USER` / `AUTH_PASSWORD` — credenciais do HTTP Basic Auth.
 - `DB_PATH` — caminho do arquivo SQLite (padrão: `./data/transcricoes.db`).
-- `PORT` — porta HTTP (padrão: 3011; Railway define automaticamente).
+- `API_PORT` — porta da API no desenvolvimento local (padrão: `3011`).
+- `VITE_PORT` — porta do frontend Vite e do mapeamento correspondente no
+  Docker Compose (padrão: `5173`).
+- `PORT` — reservado à porta HTTP injetada pelo Railway; quando presente, tem
+  prioridade sobre `API_PORT`.
 
 ## Deploy no Railway
 
