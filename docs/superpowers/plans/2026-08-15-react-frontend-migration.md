@@ -665,7 +665,8 @@ describe('Button', () => {
     render(<Button loading>Entrar</Button>);
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
-    expect(screen.queryByText('Entrar')).not.toBeVisible();
+    expect(screen.queryByText('Entrar')).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando' })).toBeInTheDocument();
   });
 });
 ```
@@ -717,12 +718,13 @@ export function Button({
         ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     >
-      <span className={loading ? 'hidden' : 'contents'}>{children}</span>
-      {loading && <Spinner size="sm" />}
+      {loading ? <Spinner size="sm" /> : children}
     </button>
   );
 }
 ```
+
+Note: the button's label is swapped for a spinner while loading (not hidden via CSS) — this keeps the loading state testable in jsdom, which never loads the compiled Tailwind stylesheet, so CSS-based hiding (`className="hidden"`) would be invisible to `toBeVisible()`/`toBeInTheDocument()` assertions in tests.
 
 - [ ] **Step 4: Implement `Spinner` (needed by `Button`)**
 
@@ -1099,13 +1101,14 @@ git commit -m "feat: add Modal primitive"
 Create `tests/client/ui/Combobox.test.tsx`:
 
 ```tsx
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Combobox } from '../../../src/client/ui/Combobox';
 
 function ControlledCombobox({ options }: { options: string[] }) {
-  const [value, setValue] = require('react').useState('');
+  const [value, setValue] = useState('');
   return <Combobox id="tag" value={value} onChange={setValue} options={options} placeholder="Ex.: Cliente Acme" />;
 }
 
@@ -1220,7 +1223,7 @@ export function Combobox({ id, value, onChange, options, placeholder }: Combobox
     <div className="relative w-full flex items-center gap-2 bg-ctp-mantle border border-ctp-surface1 rounded-lg px-3 focus-within:border-ctp-mauve">
       <span
         style={dotStyle}
-        className="w-[9px] h-[9px] rounded-full bg-[var(--tag-color,theme(colors.ctp-overlay0))] flex-shrink-0"
+        className="w-[9px] h-[9px] rounded-full bg-[var(--tag-color,#6c7086)] flex-shrink-0"
         aria-hidden="true"
       />
       <input
