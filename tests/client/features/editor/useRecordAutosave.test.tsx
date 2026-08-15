@@ -15,11 +15,17 @@ const RECORD: TranscriptionRecord = {
   createdAt: '2026-08-15T00:00:00.000Z',
 };
 
-let updateFieldRef: ((text: string) => void) | undefined;
+let updateFieldRef: {
+  text: (text: string) => void;
+  filename: (name: string) => void;
+} | undefined;
 
 function Probe({ onSaved }: { onSaved: () => void }) {
   const { draft, status, updateField } = useRecordAutosave(RECORD, onSaved);
-  updateFieldRef = (text) => updateField('text', text);
+  updateFieldRef = {
+    text: (text) => updateField('text', text),
+    filename: (name) => updateField('filename', name),
+  };
   return (
     <p>
       {draft.text}:{status}
@@ -50,7 +56,7 @@ describe('useRecordAutosave', () => {
     );
 
     act(() => {
-      updateFieldRef?.('texto novo');
+      updateFieldRef?.text('texto novo');
     });
     expect(screen.getByText('texto novo:saved')).toBeInTheDocument();
 
@@ -62,5 +68,58 @@ describe('useRecordAutosave', () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe('/api/history/3');
     expect(init?.method).toBe('PATCH');
+  });
+
+  it('shows alert with current filename when save fails after rename', async () => {
+    const mockFetch = vi.mocked(fetch);
+
+    // First request: rename succeeds
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(RECORD), { status: 200 }));
+    // Second request: text update fails
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ error: 'Network error' }), { status: 500 }));
+
+    const onSaved = vi.fn();
+    render(
+      <AuthProvider>
+        <AlertProvider>
+          <Probe onSaved={onSaved} />
+        </AlertProvider>
+      </AuthProvider>
+    );
+
+    // Update filename from 'nota.mp3' to 'reuniao-final.mp3'
+    act(() => {
+      updateFieldRef?.filename('reuniao-final.mp3');
+    });
+
+    // Wait for successful rename save
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+
+    // Clear previous calls
+    mockFetch.mockClear();
+
+    // Now trigger a text update that will fail
+    act(() => {
+      updateFieldRef?.text('texto novo que vai falhar');
+    });
+
+    // Wait for failed save
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+
+    // Verify the failed request was sent with the current (renamed) filename
+    // This proves the closure is reading the latest draft, not the stale one
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toBe('/api/history/3');
+      const body = JSON.parse(init?.body as string);
+      expect(body.filename).toBe('reuniao-final.mp3');
+    });
   });
 });

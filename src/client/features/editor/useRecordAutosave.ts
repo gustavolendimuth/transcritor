@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createAutosave, type AutosaveStatus } from '../../lib/autosave';
 import { useAuth } from '../auth/AuthContext';
 import { useAlert } from '../alert/AlertContext';
@@ -13,6 +13,9 @@ export function useRecordAutosave(record: TranscriptionRecord, onSaved: () => vo
     projectTag: record.projectTag,
   });
   const [status, setStatus] = useState<AutosaveStatus>('saved');
+
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const [autosave] = useState(() => {
     let hasAlertedSaveError = false;
@@ -34,7 +37,7 @@ export function useRecordAutosave(record: TranscriptionRecord, onSaved: () => vo
           hasAlertedSaveError = false;
         } else if (nextStatus === 'error' && !hasAlertedSaveError) {
           hasAlertedSaveError = true;
-          showAlert(`Não foi possível salvar as alterações de "${draft.filename}".`, {
+          showAlert(`Não foi possível salvar as alterações de "${draftRef.current.filename}".`, {
             onRetry: () => autosave.retry(),
           });
         }
