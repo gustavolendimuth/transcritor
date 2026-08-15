@@ -143,21 +143,25 @@ input {
   }
 }
 
-.waveform-btn {
+.btn-spinner {
   display: none;
-  height: 16px;
+}
+
+.btn.is-loading {
+  cursor: wait;
 }
 
 .btn.is-loading .btn-label {
   display: none;
 }
 
-.btn.is-loading .waveform-btn {
+.btn.is-loading .btn-spinner {
   display: inline-flex;
 }
 
-.btn.is-loading .waveform-btn span {
-  background: var(--ctp-base);
+.btn-primary .btn-spinner {
+  border-color: rgba(24, 24, 37, 0.35);
+  border-top-color: var(--ctp-mantle);
 }
 
 .card {
@@ -312,24 +316,51 @@ input {
   animation: spin 0.7s linear infinite;
 }
 
+.spinner-sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
 .spinner-lg {
   width: 40px;
   height: 40px;
   border-width: 3px;
 }
 
-.loading-modal {
-  gap: var(--space-3);
+.boot-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ctp-base);
+  z-index: 20;
 }
 
-.loading-message {
-  margin: 0;
-  color: var(--ctp-subtext1);
-  font-size: 0.9375rem;
+.boot-loading[hidden] {
+  display: none;
 }
 
 .alert-modal {
   gap: var(--space-3);
+}
+
+.alert-icon {
+  display: none;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.alert-modal--success .alert-icon-success {
+  display: block;
+  color: var(--ctp-green);
+}
+
+.alert-modal--error .alert-icon-error {
+  display: block;
+  color: var(--ctp-red);
 }
 
 .alert-message {
@@ -343,6 +374,18 @@ input {
 
 .alert-message--success {
   color: var(--ctp-green);
+}
+
+.alert-actions {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.alert-modal .alert-actions .btn {
+  flex: 1;
+  width: auto;
 }
 
 @keyframes spin {
@@ -433,6 +476,9 @@ input {
 }
 
 .section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0;
 }
 
@@ -521,6 +567,9 @@ input {
 }
 
 .upload-queue-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   color: var(--ctp-subtext0);
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -645,6 +694,23 @@ input {
 .history-delete:hover {
   background: rgba(243, 139, 168, 0.12);
   color: var(--ctp-red);
+}
+
+.history-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.history-delete-spinner {
+  display: none;
+}
+
+.history-delete.is-loading svg {
+  display: none;
+}
+
+.history-delete.is-loading .history-delete-spinner {
+  display: inline-flex;
 }
 
 .backdrop {

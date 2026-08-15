@@ -37,10 +37,12 @@ interface RecordEditor {
   status: AutosaveStatus;
 }
 
+const bootLoading = document.getElementById('boot-loading') as HTMLDivElement;
 const loginBackdrop = document.getElementById('login-backdrop') as HTMLDivElement;
 const loginForm = document.getElementById('login-form') as HTMLFormElement;
 const loginUser = document.getElementById('login-user') as HTMLInputElement;
 const loginPassword = document.getElementById('login-password') as HTMLInputElement;
+const loginSubmitBtn = document.getElementById('login-submit-btn') as HTMLButtonElement;
 const loginError = document.getElementById('login-error') as HTMLParagraphElement;
 const appRoot = document.getElementById('app') as HTMLDivElement;
 const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
@@ -53,8 +55,10 @@ const uploadProjectTagDot = document.getElementById('upload-project-tag-dot') as
 const uploadProjectTagListbox = document.getElementById('upload-project-tag-listbox') as HTMLUListElement;
 const uploadQueue = document.getElementById('upload-queue') as HTMLUListElement;
 const alertBackdrop = document.getElementById('alert-backdrop') as HTMLDivElement;
+const alertModal = document.getElementById('alert-modal') as HTMLDivElement;
 const alertMessage = document.getElementById('alert-message') as HTMLParagraphElement;
 const alertOkBtn = document.getElementById('alert-ok-btn') as HTMLButtonElement;
+const alertRetryBtn = document.getElementById('alert-retry-btn') as HTMLButtonElement;
 const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
 const resultTextCount = document.getElementById('result-text-count') as HTMLSpanElement;
@@ -66,6 +70,7 @@ const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const historyList = document.getElementById('history-list') as HTMLUListElement;
 const historyEmpty = document.getElementById('history-empty') as HTMLParagraphElement;
+const historyLoading = document.getElementById('history-loading') as HTMLSpanElement;
 const historyProjectFilter = document.getElementById('history-project-filter') as HTMLDivElement;
 const timestampsCheckbox = document.getElementById('timestamps-checkbox') as HTMLInputElement;
 const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
@@ -111,19 +116,30 @@ function setSelectedFiles(files: File[]) {
   dropzoneFilename.textContent = files.length === 1 ? files[0].name : `${files.length} arquivos selecionados`;
 }
 
-function showAlert(message: string, type: 'error' | 'success') {
+let pendingAlertRetry: (() => void) | undefined;
+
+function showAlert(message: string, type: 'error' | 'success', onRetry?: () => void) {
   alertMessage.textContent = message;
   alertMessage.classList.toggle('alert-message--error', type === 'error');
   alertMessage.classList.toggle('alert-message--success', type === 'success');
+  alertModal.classList.toggle('alert-modal--error', type === 'error');
+  alertModal.classList.toggle('alert-modal--success', type === 'success');
+  pendingAlertRetry = onRetry;
+  alertRetryBtn.hidden = !onRetry;
+  alertOkBtn.textContent = onRetry ? 'Fechar' : 'OK';
+  alertOkBtn.classList.toggle('btn-primary', !onRetry);
+  alertOkBtn.classList.toggle('btn-ghost', Boolean(onRetry));
   alertBackdrop.hidden = false;
 }
 
 function showApp() {
+  bootLoading.hidden = true;
   loginBackdrop.hidden = true;
   appRoot.hidden = false;
 }
 
 function showLogin() {
+  bootLoading.hidden = true;
   appRoot.hidden = true;
   loginBackdrop.hidden = false;
   loginUser.focus();
@@ -134,6 +150,7 @@ function getEditor(record: TranscriptionRecord): RecordEditor {
   if (existing) return existing;
 
   let editor: RecordEditor;
+  let hasAlertedSaveError = false;
   const autosave = createAutosave(700, async (changes) => {
     const response = await authFetch(`/api/history/${record.id}`, {
       method: 'PATCH',
@@ -147,6 +164,16 @@ function getEditor(record: TranscriptionRecord): RecordEditor {
     });
   }, (status) => {
     editor.status = status;
+    if (status === 'saved') {
+      hasAlertedSaveError = false;
+    } else if (status === 'error' && !hasAlertedSaveError) {
+      hasAlertedSaveError = true;
+      showAlert(
+        `Não foi possível salvar as alterações de "${editor.draft.filename}".`,
+        'error',
+        () => editor.autosave.retry()
+      );
+    }
   });
 
   editor = {
@@ -193,12 +220,18 @@ function renderUploadQueue() {
     filename.textContent = task.value.file.name;
     const status = document.createElement('span');
     status.className = 'upload-queue-status';
-    status.textContent = {
-      queued: 'Aguardando',
-      processing: 'Transcrevendo…',
-      success: 'Concluído',
-      error: task.error ?? 'Erro ao transcrever',
-    }[task.status];
+    if (task.status === 'processing') {
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner spinner-sm';
+      spinner.setAttribute('aria-hidden', 'true');
+      status.append(spinner, document.createTextNode('Transcrevendo…'));
+    } else {
+      status.textContent = {
+        queued: 'Aguardando',
+        success: 'Concluído',
+        error: task.error ?? 'Erro ao transcrever',
+      }[task.status];
+    }
     details.append(filename, status);
     item.append(details);
 
@@ -291,6 +324,7 @@ function renderTagFilter() {
 
 async function loadHistory() {
   const loadVersion = ++historyLoadVersion;
+  historyLoading.hidden = false;
   try {
     const tag = activeTagFilter;
     const url = tag ? `/api/history?${new URLSearchParams({ projectTag: tag })}` : '/api/history';
@@ -317,31 +351,52 @@ async function loadHistory() {
       deleteBtn.type = 'button';
       deleteBtn.className = 'history-delete';
       deleteBtn.setAttribute('aria-label', `Excluir ${record.filename}`);
-      deleteBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 0 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2 2L4 6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      deleteBtn.addEventListener('click', async (event) => {
-        event.stopPropagation();
-        const deleteResponse = await authFetch(`/api/history/${record.id}`, { method: 'DELETE' });
-        if (!deleteResponse.ok) {
-          showAlert('Não foi possível excluir a transcrição.', 'error');
-          return;
-        }
-        if (activeRecordId === record.id) {
-          activeRecordId = null;
-          resultSection.hidden = true;
-        }
+      deleteBtn.innerHTML =
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 0 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2 2L4 6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<span class="spinner history-delete-spinner" aria-hidden="true"></span>';
+
+      const deleteRecord = async () => {
+        deleteBtn.disabled = true;
+        deleteBtn.classList.add('is-loading');
         try {
-          await refreshProjectTags();
-        } catch (error) {
-          showAlert(error instanceof Error ? error.message : 'Erro ao atualizar as tags', 'error');
+          const deleteResponse = await authFetch(`/api/history/${record.id}`, { method: 'DELETE' });
+          if (!deleteResponse.ok) {
+            showAlert(`Não foi possível excluir "${record.filename}".`, 'error', () => { void deleteRecord(); });
+            return;
+          }
+          if (activeRecordId === record.id) {
+            activeRecordId = null;
+            resultSection.hidden = true;
+          }
+          try {
+            await refreshProjectTags();
+          } catch (error) {
+            showAlert(error instanceof Error ? error.message : 'Erro ao atualizar as tags', 'error', () => {
+              void refreshProjectTags().catch(() => undefined);
+            });
+          }
+          await loadHistory();
+        } catch {
+          showAlert(`Não foi possível excluir "${record.filename}".`, 'error', () => { void deleteRecord(); });
+        } finally {
+          deleteBtn.disabled = false;
+          deleteBtn.classList.remove('is-loading');
         }
-        await loadHistory();
+      };
+      deleteBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        void deleteRecord();
       });
       li.append(info, deleteBtn);
       historyList.append(li);
     }
   } catch (error) {
     if (loadVersion !== historyLoadVersion) return;
-    showAlert(error instanceof Error ? error.message : 'Erro ao carregar histórico', 'error');
+    showAlert(error instanceof Error ? error.message : 'Erro ao carregar histórico', 'error', () => {
+      void loadHistory();
+    });
+  } finally {
+    if (loadVersion === historyLoadVersion) historyLoading.hidden = true;
   }
 }
 
@@ -358,11 +413,31 @@ function escapeHtml(value: string): string {
 }
 
 alertOkBtn.addEventListener('click', () => { alertBackdrop.hidden = true; });
+alertRetryBtn.addEventListener('click', () => {
+  alertBackdrop.hidden = true;
+  pendingAlertRetry?.();
+});
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   loginError.hidden = true;
-  const ok = await attemptLogin(loginUser.value.trim(), loginPassword.value);
+  loginSubmitBtn.disabled = true;
+  loginSubmitBtn.classList.add('is-loading');
+  loginUser.disabled = true;
+  loginPassword.disabled = true;
+  let ok: boolean;
+  try {
+    ok = await attemptLogin(loginUser.value.trim(), loginPassword.value);
+  } catch {
+    loginError.textContent = 'Não foi possível entrar. Verifique a conexão e tente novamente.';
+    loginError.hidden = false;
+    return;
+  } finally {
+    loginSubmitBtn.disabled = false;
+    loginSubmitBtn.classList.remove('is-loading');
+    loginUser.disabled = false;
+    loginPassword.disabled = false;
+  }
   if (!ok) {
     loginError.textContent = 'Usuário ou senha inválidos.';
     loginError.hidden = false;
@@ -375,7 +450,9 @@ loginForm.addEventListener('submit', async (event) => {
   try {
     await refreshProjectTags();
   } catch (error) {
-    showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error');
+    showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error', () => {
+      void refreshProjectTags().catch(() => undefined);
+    });
   }
   await loadHistory();
 });
@@ -430,8 +507,12 @@ resultProjectTag.addEventListener('input', () => {
   editor.autosave.schedule({ ...editor.draft });
 });
 copyBtn.addEventListener('click', async () => {
-  await navigator.clipboard.writeText(resultText.value);
-  showAlert('Copiado para a área de transferência.', 'success');
+  try {
+    await navigator.clipboard.writeText(resultText.value);
+    showAlert('Copiado para a área de transferência.', 'success');
+  } catch {
+    showAlert('Não foi possível copiar para a área de transferência.', 'error');
+  }
 });
 downloadBtn.addEventListener('click', () => {
   const blob = new Blob([resultText.value], { type: 'text/plain' });
@@ -446,20 +527,27 @@ downloadBtn.addEventListener('click', () => {
 });
 
 async function bootstrap() {
-  if (getCredentials()) {
-    const response = await authFetch('/api/history');
-    if (response.ok) {
-      showApp();
-      try {
-        await refreshProjectTags();
-      } catch (error) {
-        showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error');
+  try {
+    if (getCredentials()) {
+      const response = await authFetch('/api/history');
+      if (response.ok) {
+        showApp();
+        try {
+          await refreshProjectTags();
+        } catch (error) {
+          showAlert(error instanceof Error ? error.message : 'Erro ao carregar as tags', 'error', () => {
+            void refreshProjectTags().catch(() => undefined);
+          });
+        }
+        await loadHistory();
+        return;
       }
-      await loadHistory();
-      return;
     }
+    showLogin();
+  } catch {
+    showLogin();
+    showAlert('Não foi possível conectar ao servidor.', 'error', () => { void bootstrap(); });
   }
-  showLogin();
 }
 
 bootstrap();

@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <div id="boot-loading" class="boot-loading" role="status" aria-live="polite">
+      <span class="spinner spinner-lg" aria-hidden="true"></span>
+    </div>
+
     <div id="login-backdrop" class="backdrop" hidden>
       <form id="login-form" class="modal" novalidate>
         <div class="waveform" aria-hidden="true">
@@ -29,7 +33,10 @@
           <input id="login-password" type="password" autocomplete="current-password" required />
         </label>
         <p id="login-error" class="error" role="alert" hidden></p>
-        <button type="submit" class="btn btn-primary">Entrar</button>
+        <button id="login-submit-btn" type="submit" class="btn btn-primary">
+          <span class="btn-label">Entrar</span>
+          <span class="spinner btn-spinner" aria-hidden="true"></span>
+        </button>
       </form>
     </div>
 
@@ -122,10 +129,7 @@
             </label>
           </div>
           <button id="transcribe-btn" type="button" class="btn btn-primary" disabled>
-            <span class="btn-label">Transcrever</span>
-            <span class="waveform waveform-btn" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span>
-            </span>
+            Transcrever
           </button>
           <ul id="upload-queue" class="upload-queue" aria-live="polite" hidden></ul>
         </section>
@@ -191,7 +195,10 @@
 
         <section id="history-section" class="card">
           <div class="section-heading">
-            <h2>Histórico</h2>
+            <h2>
+              Histórico
+              <span id="history-loading" class="spinner spinner-sm" aria-hidden="true" hidden></span>
+            </h2>
             <div class="tag-filter">
               <span class="tag-filter-label">Tags</span>
               <div id="history-project-filter" class="tag-filter-row" role="group" aria-label="Filtrar por tag"></div>
@@ -205,18 +212,36 @@
       </main>
     </div>
 
-    <div id="loading-backdrop" class="backdrop" hidden>
-      <div class="modal loading-modal" role="status" aria-live="polite">
-        <span class="spinner spinner-lg" aria-hidden="true"></span>
-        <p class="loading-message">
-          Transcrevendo... isso pode levar alguns minutos para áudios longos.
-        </p>
-      </div>
-    </div>
     <div id="alert-backdrop" class="backdrop" hidden>
-      <div class="modal alert-modal" role="alertdialog" aria-live="assertive">
+      <div id="alert-modal" class="modal alert-modal" role="alertdialog" aria-live="assertive">
+        <svg
+          class="alert-icon alert-icon-success"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="m8 12.5 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg
+          class="alert-icon alert-icon-error"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7.5v5.5" stroke-linecap="round" />
+          <circle cx="12" cy="16.25" r="0.75" fill="currentColor" stroke="none" />
+        </svg>
         <p id="alert-message" class="alert-message"></p>
-        <button id="alert-ok-btn" type="button" class="btn btn-primary">OK</button>
+        <div class="alert-actions">
+          <button id="alert-retry-btn" type="button" class="btn btn-primary" hidden>Tentar novamente</button>
+          <button id="alert-ok-btn" type="button" class="btn btn-primary">OK</button>
+        </div>
       </div>
     </div>
     <script type="module" src="./main.ts"></script>
