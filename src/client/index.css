@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --tag-color-0: #fab387;
+    --tag-color-1: #f9e2af;
+    --tag-color-2: #a6e3a1;
+    --tag-color-3: #94e2d5;
+    --tag-color-4: #89dceb;
+    --tag-color-5: #89b4fa;
+    --tag-color-6: #f5c2e7;
+    --tag-color-7: #f38ba8;
+  }
+
+  body {
+    @apply bg-ctp-base text-ctp-text font-body;
+  }
+}
+
+@layer components {
+  .waveform-bar {
+    animation: waveform-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes waveform-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waveform-bar {
+    animation: none;
+    transform: scaleY(0.7);
+  }
+}
