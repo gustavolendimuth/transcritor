@@ -6,7 +6,15 @@ import { App } from '../../src/client/App';
 describe('App', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    vi.stubGlobal('fetch', vi.fn());
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/history/tags')) return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+        if (url.includes('/api/history')) return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+        return Promise.resolve(new Response(null, { status: 200 }));
+      })
+    );
   });
 
   afterEach(() => {
@@ -19,8 +27,7 @@ describe('App', () => {
     expect(screen.getByLabelText('Usuário')).toBeInTheDocument();
   });
 
-  it('shows the header and authenticated placeholder once logged in', async () => {
-    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 200 }));
+  it('shows the header and main app once logged in', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByLabelText('Usuário')).toBeInTheDocument());
 
@@ -28,7 +35,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText('Senha'), 'secret');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    await waitFor(() => expect(screen.getByTestId('authenticated-app')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Histórico' })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
   });
 });
