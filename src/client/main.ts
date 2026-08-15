@@ -57,6 +57,7 @@ const alertMessage = document.getElementById('alert-message') as HTMLParagraphEl
 const alertOkBtn = document.getElementById('alert-ok-btn') as HTMLButtonElement;
 const resultSection = document.getElementById('result-section') as HTMLElement;
 const resultText = document.getElementById('result-text') as HTMLTextAreaElement;
+const resultTextCount = document.getElementById('result-text-count') as HTMLSpanElement;
 const resultFilename = document.getElementById('result-filename') as HTMLInputElement;
 const resultProjectTag = document.getElementById('result-project-tag') as HTMLInputElement;
 const resultProjectTagDot = document.getElementById('result-project-tag-dot') as HTMLElement;
@@ -165,6 +166,18 @@ function showResult(record: TranscriptionRecord) {
   resultProjectTag.value = editor.draft.projectTag ?? '';
   resultTagCombobox.refreshOptions();
   resultSection.hidden = false;
+  updateResultTextCount();
+  growResultText();
+}
+
+function updateResultTextCount() {
+  const words = resultText.value.trim().match(/\S+/g)?.length ?? 0;
+  resultTextCount.textContent = `${words} ${words === 1 ? 'palavra' : 'palavras'}`;
+}
+
+function growResultText() {
+  resultText.style.height = 'auto';
+  resultText.style.height = `${resultText.scrollHeight}px`;
 }
 
 function renderUploadQueue() {
@@ -394,6 +407,8 @@ transcribeBtn.addEventListener('click', () => {
 });
 
 resultText.addEventListener('input', () => {
+  updateResultTextCount();
+  growResultText();
   if (activeRecordId === null) return;
   const editor = editors.get(activeRecordId);
   if (!editor) return;

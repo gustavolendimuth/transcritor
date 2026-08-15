@@ -154,8 +154,35 @@
               <ul id="result-project-tag-listbox" class="tag-combobox-popover" role="listbox" hidden></ul>
             </div>
           </label>
-          <label class="result-text-label" for="result-text">Transcrição</label>
-          <textarea id="result-text" class="result-text"></textarea>
+          <div class="editor">
+            <div class="editor-toolbar">
+              <label class="editor-label" for="result-text">
+                <svg
+                  class="editor-pencil"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m16.5 3.5 4 4L7 21l-4.5 1L3.5 17.5Z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Transcrição
+              </label>
+              <span id="result-text-count" class="editor-count"></span>
+            </div>
+            <textarea
+              id="result-text"
+              class="result-text"
+              placeholder="Edite o texto da transcrição aqui…"
+            ></textarea>
+          </div>
           <div class="actions">
             <button id="copy-btn" type="button" class="btn btn-secondary">Copiar</button>
             <button id="download-btn" type="button" class="btn btn-secondary">Baixar</button>
@@ -166,7 +193,7 @@
           <div class="section-heading">
             <h2>Histórico</h2>
             <div class="tag-filter">
-              <span class="tag-filter-label">Tag</span>
+              <span class="tag-filter-label">Tags</span>
               <div id="history-project-filter" class="tag-filter-row" role="group" aria-label="Filtrar por tag"></div>
             </div>
           </div>
