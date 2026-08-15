@@ -112,14 +112,14 @@ describe('useRecordAutosave', () => {
       await vi.advanceTimersByTimeAsync(700);
     });
 
-    // Verify the failed request was sent with the current (renamed) filename
-    // This proves the closure is reading the latest draft, not the stale one
+    // Verify the alert text contains the CURRENT (renamed) filename, not the original
+    // This directly proves the fix: the closure now reads draftRef.current.filename (latest)
+    // instead of the stale draft.filename from the first render
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
-      const [url, init] = mockFetch.mock.calls[0];
-      expect(url).toBe('/api/history/3');
-      const body = JSON.parse(init?.body as string);
-      expect(body.filename).toBe('reuniao-final.mp3');
+      expect(screen.getByText((content) => content.includes('reuniao-final.mp3'))).toBeInTheDocument();
     });
+
+    // Verify the alert does NOT contain the original filename in the error message
+    expect(screen.queryByText((content) => content.includes('nota.mp3') && content.includes('Não foi possível'))).not.toBeInTheDocument();
   });
 });
