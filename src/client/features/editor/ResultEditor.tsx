@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Card } from '../../ui/Card';
 import { Field } from '../../ui/Field';
 import { Button } from '../../ui/Button';
@@ -20,6 +21,14 @@ function normalizeProjectTag(value: string): string | null {
 export function ResultEditor({ record, tags, onSaved }: ResultEditorProps) {
   const { showAlert } = useAlert();
   const { draft, updateField } = useRecordAutosave(record, onSaved);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [draft.text]);
 
   const wordCount = draft.text.trim().match(/\S+/g)?.length ?? 0;
 
@@ -73,6 +82,7 @@ export function ResultEditor({ record, tags, onSaved }: ResultEditorProps) {
       </div>
       <textarea
         id="result-text"
+        ref={textareaRef}
         placeholder="Edite o texto da transcrição aqui…"
         value={draft.text}
         onChange={(event) => updateField('text', event.target.value)}

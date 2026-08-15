@@ -38,4 +38,21 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Histórico' })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
   });
+
+  it('shows a connection-failure alert with a working retry when bootstrap cannot reach the server', async () => {
+    sessionStorage.setItem('transcritor:credentials', btoa('alice:secret'));
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'));
+
+    render(<App />);
+
+    expect(await screen.findByText('Não foi possível conectar ao servidor.')).toBeInTheDocument();
+    const retryButton = screen.getByRole('button', { name: 'Tentar novamente' });
+
+    // The retry re-runs bootstrap; make it succeed this time.
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 200 }));
+    await userEvent.click(retryButton);
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Histórico' })).toBeInTheDocument());
+    expect(screen.queryByText('Não foi possível conectar ao servidor.')).not.toBeInTheDocument();
+  });
 });

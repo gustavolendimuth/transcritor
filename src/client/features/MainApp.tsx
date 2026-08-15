@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
 import { UploadCard } from './upload/UploadCard';
 import { ResultEditor } from './editor/ResultEditor';
@@ -14,12 +14,15 @@ export function MainApp() {
 
   const { tags } = useProjectTags(refreshKey);
 
+  useEffect(() => {
+    if (activeTag && tags.length > 0 && !tags.includes(activeTag)) setActiveTag('');
+  }, [tags, activeTag]);
+
   function bumpRefresh() {
     setRefreshKey((key) => key + 1);
   }
 
-  function handleRecordCreated(record: TranscriptionRecord) {
-    setActiveRecord(record);
+  function handleRecordCreated(_record: TranscriptionRecord) {
     bumpRefresh();
   }
 
@@ -33,7 +36,6 @@ export function MainApp() {
   }
 
   function handleTagChange(tag: string) {
-    if (tags.length > 0 && tag && !tags.includes(tag)) return;
     setActiveTag(tag);
   }
 

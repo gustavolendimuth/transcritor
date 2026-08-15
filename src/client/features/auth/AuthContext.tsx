@@ -4,6 +4,8 @@ import { attemptLogin, authFetch, clearCredentials, getCredentials } from '../..
 interface AuthContextValue {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
+  bootstrapError: string | null;
+  retryBootstrap(): void;
   login(user: string, password: string): Promise<boolean>;
   logout(): void;
   authFetch: typeof authFetch;
@@ -14,10 +16,13 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function bootstrap() {
+      setBootstrapError(null);
       if (getCredentials()) {
         try {
           const response = await authFetch('/api/history');
@@ -25,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsAuthenticated(true);
           }
         } catch {
-          // Falls through to the unauthenticated state below.
+          if (!cancelled) setBootstrapError('Não foi possível conectar ao servidor.');
         }
       }
       if (!cancelled) setIsBootstrapping(false);
@@ -34,7 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bootstrapAttempt]);
+
+  function retryBootstrap() {
+    setIsBootstrapping(true);
+    setBootstrapAttempt((attempt) => attempt + 1);
+  }
 
   useEffect(() => {
     function handleUnauthorized() {
@@ -56,7 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isBootstrapping, login, logout, authFetch }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isBootstrapping, bootstrapError, retryBootstrap, login, logout, authFetch }}
+    >
       {children}
     </AuthContext.Provider>
   );

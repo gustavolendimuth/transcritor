@@ -46,11 +46,9 @@ export function useRecordAutosave(record: TranscriptionRecord, onSaved: () => vo
   });
 
   function updateField<K extends keyof TranscriptionChanges>(key: K, value: TranscriptionChanges[K]) {
-    setDraft((current) => {
-      const next = { ...current, [key]: value };
-      autosave.schedule(next);
-      return next;
-    });
+    const next = { ...draft, [key]: value };
+    setDraft(next);
+    autosave.schedule(next);
   }
 
   return { draft, status, updateField };

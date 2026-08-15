@@ -48,4 +48,24 @@ describe('ResultEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copiar' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('uma duas');
   });
+
+  it('auto-grows the textarea to fit its scrollHeight', () => {
+    const scrollHeightSpy = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(400);
+    try {
+      render(
+        <AuthProvider>
+          <AlertProvider>
+            <ResultEditor record={RECORD} tags={[]} onSaved={vi.fn()} />
+          </AlertProvider>
+        </AuthProvider>
+      );
+      const textarea = screen.getByLabelText('Transcrição') as HTMLTextAreaElement;
+      // growResultText's two-step reset ('auto' then scrollHeight) should land on the mocked value.
+      expect(textarea.style.height).toBe('400px');
+    } finally {
+      scrollHeightSpy.mockRestore();
+    }
+  });
 });

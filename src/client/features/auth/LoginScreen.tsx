@@ -51,7 +51,7 @@ export function LoginScreen() {
               className="w-full bg-ctp-mantle border border-ctp-surface1 rounded-lg px-3 py-2.5 text-[0.9375rem] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ctp-mauve"
             />
           </Field>
-          <Field label="Senha" htmlFor="login-password">
+          <Field label="Senha" htmlFor="login-password" error={error ?? undefined}>
             <input
               id="login-password"
               type="password"
@@ -63,11 +63,6 @@ export function LoginScreen() {
               className="w-full bg-ctp-mantle border border-ctp-surface1 rounded-lg px-3 py-2.5 text-[0.9375rem] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ctp-mauve"
             />
           </Field>
-          {error && (
-            <p role="alert" className="text-ctp-red text-sm mb-3">
-              {error}
-            </p>
-          )}
           <Button type="submit" loading={isSubmitting} className="w-full">
             Entrar
           </Button>

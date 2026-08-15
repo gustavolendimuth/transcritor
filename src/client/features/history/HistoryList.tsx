@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAlert } from '../alert/AlertContext';
 import { Spinner } from '../../ui/Spinner';
@@ -25,20 +25,25 @@ export function HistoryList({ activeTag, activeRecordId, refreshKey, onSelectRec
   const [records, setRecords] = useState<TranscriptionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const loadVersionRef = useRef(0);
 
   async function loadHistory() {
+    const loadVersion = ++loadVersionRef.current;
     setIsLoading(true);
     try {
       const url = activeTag ? `/api/history?${new URLSearchParams({ projectTag: activeTag })}` : '/api/history';
       const response = await authFetch(url);
       if (!response.ok) throw new Error('Não foi possível carregar o histórico');
-      setRecords((await response.json()) as TranscriptionRecord[]);
+      const data = (await response.json()) as TranscriptionRecord[];
+      if (loadVersion !== loadVersionRef.current) return;
+      setRecords(data);
     } catch (error) {
+      if (loadVersion !== loadVersionRef.current) return;
       showAlert(error instanceof Error ? error.message : 'Erro ao carregar histórico', {
         onRetry: () => void loadHistory(),
       });
     } finally {
-      setIsLoading(false);
+      if (loadVersion === loadVersionRef.current) setIsLoading(false);
     }
   }
 

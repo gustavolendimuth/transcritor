@@ -44,5 +44,14 @@ describe('UploadCard', () => {
     await userEvent.click(button);
 
     await waitFor(() => expect(onRecordCreated).toHaveBeenCalledWith(RECORD));
+
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const body = init?.body as FormData;
+    expect(body).toBeInstanceOf(FormData);
+    const uploadedFile = body.get('audio');
+    expect(uploadedFile).toBeInstanceOf(File);
+    expect((uploadedFile as File).name).toBe('audio.mp3');
+    expect(body.get('withTimestamps')).toBe('false');
+    expect(body.get('language')).toBe('pt');
   });
 });
