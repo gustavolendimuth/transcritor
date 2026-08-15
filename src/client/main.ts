@@ -61,8 +61,6 @@ const resultFilename = document.getElementById('result-filename') as HTMLInputEl
 const resultProjectTag = document.getElementById('result-project-tag') as HTMLInputElement;
 const resultProjectTagDot = document.getElementById('result-project-tag-dot') as HTMLElement;
 const resultProjectTagListbox = document.getElementById('result-project-tag-listbox') as HTMLUListElement;
-const autosaveStatus = document.getElementById('autosave-status') as HTMLParagraphElement;
-const autosaveRetryBtn = document.getElementById('autosave-retry-btn') as HTMLButtonElement;
 const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const historyList = document.getElementById('history-list') as HTMLUListElement;
@@ -130,18 +128,6 @@ function showLogin() {
   loginUser.focus();
 }
 
-function setAutosaveStatus(status: AutosaveStatus) {
-  const messages: Record<AutosaveStatus, string> = {
-    saving: 'Salvando…',
-    saved: 'Salvo',
-    error: 'Não foi possível salvar',
-  };
-  autosaveStatus.textContent = messages[status];
-  autosaveStatus.classList.toggle('autosave-status--error', status === 'error');
-  autosaveStatus.hidden = false;
-  autosaveRetryBtn.hidden = status !== 'error';
-}
-
 function getEditor(record: TranscriptionRecord): RecordEditor {
   const existing = editors.get(record.id);
   if (existing) return existing;
@@ -160,7 +146,6 @@ function getEditor(record: TranscriptionRecord): RecordEditor {
     });
   }, (status) => {
     editor.status = status;
-    if (activeRecordId === record.id) setAutosaveStatus(status);
   });
 
   editor = {
@@ -180,7 +165,6 @@ function showResult(record: TranscriptionRecord) {
   resultProjectTag.value = editor.draft.projectTag ?? '';
   resultTagCombobox.refreshOptions();
   resultSection.hidden = false;
-  setAutosaveStatus(editor.status);
 }
 
 function renderUploadQueue() {
@@ -415,7 +399,6 @@ resultText.addEventListener('input', () => {
   if (!editor) return;
   editor.draft.text = resultText.value;
   editor.autosave.schedule({ ...editor.draft });
-  setAutosaveStatus('saving');
 });
 resultFilename.addEventListener('input', () => {
   if (activeRecordId === null) return;
@@ -423,7 +406,6 @@ resultFilename.addEventListener('input', () => {
   if (!editor) return;
   editor.draft.filename = resultFilename.value.trim();
   editor.autosave.schedule({ ...editor.draft });
-  setAutosaveStatus('saving');
 });
 resultProjectTag.addEventListener('input', () => {
   if (activeRecordId === null) return;
@@ -431,10 +413,6 @@ resultProjectTag.addEventListener('input', () => {
   if (!editor) return;
   editor.draft.projectTag = normalizeProjectTag(resultProjectTag.value);
   editor.autosave.schedule({ ...editor.draft });
-  setAutosaveStatus('saving');
-});
-autosaveRetryBtn.addEventListener('click', () => {
-  if (activeRecordId !== null) editors.get(activeRecordId)?.autosave.retry();
 });
 copyBtn.addEventListener('click', async () => {
   await navigator.clipboard.writeText(resultText.value);
